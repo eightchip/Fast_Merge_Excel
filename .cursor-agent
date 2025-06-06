@@ -1,0 +1,13 @@
+[project]
+name = "Magic_Merge_Excel_2.0"
+framework = "rust+egui"
+target = "desktop"
+
+[entrypoint]
+frontend = "src/app.rs"
+backend = "src/main.rs"
+
+[rules]
+autogenerate = true
+fix_warnings = true
+follow_spec = "spec.md"
