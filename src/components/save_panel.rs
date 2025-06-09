@@ -3,7 +3,9 @@ use rfd::FileDialog;
 use egui::Ui;
 use umya_spreadsheet::{Spreadsheet, writer::xlsx, new_file};
 use umya_spreadsheet::writer::xlsx::XlsxError;
+use crate::components::button::AppButton;
 
+#[derive(Clone, Debug)]
 pub struct SavePanel {
     pub save_path: Option<PathBuf>, // 保存先のパスを保持
     pub file_name: String, // 入力中のファイル名
@@ -25,24 +27,33 @@ impl SavePanel {
     }
 
     pub fn render(&mut self, ui: &mut Ui, on_save: &mut dyn FnMut(&str)) {
+        println!("[DEBUG] SavePanel render started");
         ui.label("保存先ファイル名（.xlsx）");
         ui.horizontal(|ui| {
-            if ui.button("参照...").clicked() {
+            if AppButton::new("参照...").show(ui).clicked() {
+                println!("[DEBUG] Browse button clicked");
                 if let Some(path) = FileDialog::new().add_filter("XLSX", &["xlsx"]).set_directory(".").save_file() {
+                    println!("[DEBUG] File dialog returned: {:?}", path);
                     self.set_save_path(path);
                 }
             }
             ui.text_edit_singleline(&mut self.file_name);
         });
+        println!("[DEBUG] SavePanel UI elements rendered");
         let valid = self.file_name.ends_with(".xlsx") && !self.file_name.trim().is_empty();
         if !self.file_name.ends_with(".xlsx") {
             ui.colored_label(egui::Color32::RED, ".xlsx形式のみ許可されます");
         }
         ui.add_space(10.0);
-        if ui.add_enabled(valid, egui::Button::new("保存")).clicked() {
-            if valid {
+        if valid {
+            if AppButton::new("保存").show(ui).clicked() {
                 on_save(&self.file_name);
             }
+        } else {
+            AppButton::new("保存")
+                .with_fill(egui::Color32::from_gray(180))
+                .with_text_color(egui::Color32::from_gray(80))
+                .show(ui);
         }
     }
 }

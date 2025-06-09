@@ -11,3 +11,10 @@ backend = "src/main.rs"
 autogenerate = true
 fix_warnings = true
 follow_spec = "spec.md"
+
+; <!-- cursor-agent 用メモ（コメントでも可） -->
+
+; - 各結合モードの選択に応じたロジック分岐を用意し、UIは常にその状態を反映する
+; - 全体はウィザード形式とし、直感的な進行が可能なようにする（Next/Back制御）
+; - egui UIでは、Previewテーブルを上下5件（first/last）で表示し、パフォーマンスを確保
+; - 開発時はif/elseのネストを最小限に。再利用可能なコンポーネント設計を優先

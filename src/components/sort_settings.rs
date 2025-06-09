@@ -1,4 +1,5 @@
 use egui::Ui;
+use crate::components::button::AppButton;
 
 #[derive(Clone, PartialEq)]
 pub enum SortOrder {
@@ -6,7 +7,7 @@ pub enum SortOrder {
     Descending,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct SortKey {
     pub column: String,
     pub order: SortOrder,
@@ -48,12 +49,12 @@ impl SortSettings {
                                 ui.selectable_value(&mut sort_key.order, SortOrder::Ascending, "昇順");
                                 ui.selectable_value(&mut sort_key.order, SortOrder::Descending, "降順");
                             });
-                        if ui.button("削除").clicked() {
+                        if AppButton::new("削除").show(ui).clicked() {
                             self.sort_keys.remove(i);
                         }
                     } else {
                         // 新規追加ボタン
-                        if ui.button("＋ソートキー追加").clicked() {
+                        if AppButton::new("＋ソートキー追加").show(ui).clicked() {
                             if self.sort_keys.len() < self.candidates.len() {
                                 let next_col = self.candidates.iter().find(|c| !self.sort_keys.iter().any(|k| &k.column == *c)).cloned().unwrap_or_default();
                                 self.sort_keys.push(SortKey { column: next_col, order: SortOrder::Ascending });

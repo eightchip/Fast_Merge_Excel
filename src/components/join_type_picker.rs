@@ -1,4 +1,5 @@
 use egui::Ui;
+use crate::components::button::AppButton;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum JoinType {
@@ -33,14 +34,21 @@ impl JoinTypePicker {
             let mut checked = self.selected_join_type.as_ref() == Some(ty);
             if ui.radio(checked, *label).clicked() {
                 self.selected_join_type = Some(ty.clone());
+                println!("[DEBUG] Join type selected: {:?}", ty);
             }
         }
         ui.add_space(10.0);
         let next_enabled = self.selected_join_type.is_some();
-        if ui.add_enabled(next_enabled, egui::Button::new("次へ")).clicked() {
-            if next_enabled {
+        if next_enabled {
+            if AppButton::new("次へ").show(ui).clicked() {
+                println!("[DEBUG] Next button clicked with join type: {:?}", self.selected_join_type);
                 on_next();
             }
+        } else {
+            AppButton::new("次へ")
+                .with_fill(egui::Color32::from_gray(180))
+                .with_text_color(egui::Color32::from_gray(80))
+                .show(ui);
         }
     }
 }
