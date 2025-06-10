@@ -19,7 +19,7 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
             async_step_transition(app_state_clone.clone(), next_step, move || {
                 // ここで列抽出・検証など重い処理を行う
                 move |state: &mut AppState| {
-                    println!("[DEBUG] join_type_picker.selected_join_type at column_select: {:?}", state.join_type_picker.selected_join_type);
+                    // デバッグログを削除
                     // Ensure join type is properly set in AppState
                     if state.join_type_picker.selected_join_type.is_none() {
                         // Set default join type based on mode if not set

@@ -23,9 +23,16 @@ pub fn clean_and_infer_columns(header: &[String], columns: &[Vec<String>]) -> Da
     let mut df = DataFrame::default();
     for (i, col_name) in header.iter().enumerate() {
         let col_data = columns[i].iter().map(|v| {
-            let v = v.trim_matches(&['"', '\'', ' '] as &[_]).to_string();
+            let v = v.trim_matches(&['\"', '\'', ' '] as &[_]).to_string();
             if v.is_empty() || v == "N/A" { "".to_string() } else { v }
         }).collect::<Vec<_>>();
+        let col_lower = col_name.to_lowercase();
+        let is_identifier = ["コード", "code", "番号", "id", "取引先"].iter().any(|k| col_lower.contains(k));
+        if is_identifier {
+            let s = Series::new(col_name, col_data);
+            df.with_column(s).unwrap();
+            continue;
+        }
         let dtype = columns_map.get(col_name).and_then(|types| types.iter().max_by_key(|t| match t {
             DataType::Int64 => 3,
             DataType::Float64 => 2,

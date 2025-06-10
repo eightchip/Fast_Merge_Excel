@@ -54,15 +54,24 @@ fn main() {
 
     let mut options = eframe::NativeOptions::default();
     
-    // エミュレーション環境での互換性向上
-    options.renderer = eframe::Renderer::Glow;
-    
-    // 環境変数でソフトウェアレンダリングを強制可能
-    if std::env::var("MAGIC_MERGE_SOFTWARE_RENDER").is_ok() {
-        println!("🖥️ Software rendering mode enabled");
-        options.hardware_acceleration = eframe::HardwareAcceleration::Off;
-    } else {
-        options.hardware_acceleration = eframe::HardwareAcceleration::Preferred;
+    // -------------- レンダラー選択 --------------
+    // デフォルトは WGPU (DirectX または Vulkan/WARP ソフトウェアレンダリング対応)
+    // 環境変数 MAGIC_MERGE_RENDERER=glow で OpenGL(Glow) に切替可
+    match std::env::var("MAGIC_MERGE_RENDERER") {
+        Ok(s) if s.eq_ignore_ascii_case("glow") => {
+            println!("🎨 Renderer: Glow (OpenGL)");
+            options.renderer = eframe::Renderer::Glow;
+            // ソフトウェアレンダリング強制（OpenGL) オプション
+            if std::env::var("MAGIC_MERGE_SOFTWARE_RENDER").is_ok() {
+                println!("🖥️ Software (Mesa) rendering forced for Glow");
+                options.hardware_acceleration = eframe::HardwareAcceleration::Off;
+            }
+        }
+        _ => {
+            println!("🎨 Renderer: Wgpu (recommended)");
+            options.renderer = eframe::Renderer::Wgpu;
+            options.hardware_acceleration = eframe::HardwareAcceleration::Preferred; // Wgpu は内部でソフトウェア(Fallback)も持つ
+        }
     }
     
     options.window_builder = Some(Box::new(move |builder| {

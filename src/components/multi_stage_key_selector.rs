@@ -1,6 +1,7 @@
 use egui::Ui;
 use crate::components::button::AppButton;
 
+#[derive(Clone)]
 pub struct MultiStageKeySelector {
     pub available_keys_stage1: Vec<String>,
     pub selected_keys_stage1: Vec<String>,
@@ -26,63 +27,80 @@ impl MultiStageKeySelector {
     }
 
     pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
-        ui.label("[1段階目] 複合キー（最大3つまで）を選択してください");
-        let max_keys = 3;
-        egui::ScrollArea::vertical()
-            .id_source("multi_stage_key_selector_stage1")
-            .max_height(200.0)
-            .show(ui, |ui| {
+        ui.heading("2段階結合設定");
+        
+        // Stage 1: A↔B キー選択 (フリガナ、顧客コード等)
+        ui.group(|ui| {
+            ui.label("Step 1: 入金 ↔ 履歴 の結合キー:");
+            
+            egui::ScrollArea::vertical()
+                .max_height(120.0)
+                .id_source("stage1_keys")
+                .show(ui, |ui| {
                 for key in &self.available_keys_stage1 {
-                    let mut checked = self.selected_keys_stage1.contains(key);
-                    let disabled = false;
-                    if !disabled {
-                        if ui.checkbox(&mut checked, key).changed() {
-                            if checked {
-                                if !self.selected_keys_stage1.contains(key) {
-                                    self.selected_keys_stage1.push(key.clone());
-                                }
-                            } else {
-                                self.selected_keys_stage1.retain(|k| k != key);
+                    let selected = self.selected_keys_stage1.contains(key);
+                    let mut new_selected = selected;
+                    
+                    if ui.checkbox(&mut new_selected, key).changed() {
+                        if new_selected {
+                            if !self.selected_keys_stage1.contains(key) {
+                                self.selected_keys_stage1.push(key.clone());
                             }
+                        } else {
+                            self.selected_keys_stage1.retain(|k| k != key);
                         }
-                    } else {
-                        ui.add_enabled(false, egui::Checkbox::new(&mut checked, key));
                     }
                 }
-            });
+             });
+            
+            if !self.selected_keys_stage1.is_empty() {
+                ui.label(format!("選択済み: {:?}", self.selected_keys_stage1));
+            }
+        });
+        
         ui.add_space(10.0);
-        ui.label("[2段階目] 複合キー（最大3つまで）を選択してください");
-        egui::ScrollArea::vertical()
-            .id_source("multi_stage_key_selector_stage2")
-            .max_height(200.0)
-            .show(ui, |ui| {
+        
+        // Stage 2: B↔C キー選択 (売上先等)
+        ui.group(|ui| {
+            ui.label("Step 2: 履歴 ↔ 売上 の結合キー:");
+            
+            egui::ScrollArea::vertical()
+                .max_height(120.0)
+                .id_source("stage2_keys")
+                .show(ui, |ui| {
                 for key in &self.available_keys_stage2 {
-                    let mut checked = self.selected_keys_stage2.contains(key);
-                    let disabled = !checked && self.selected_keys_stage2.len() >= max_keys;
-                    ui.horizontal(|ui| {
-                        if ui.add_enabled(!disabled, egui::Checkbox::new(&mut checked, key)).changed() {
-                            if checked {
-                                if !self.selected_keys_stage2.contains(key) && self.selected_keys_stage2.len() < max_keys {
-                                    self.selected_keys_stage2.push(key.clone());
-                                }
-                            } else {
-                                self.selected_keys_stage2.retain(|k| k != key);
+                    let selected = self.selected_keys_stage2.contains(key);
+                    let mut new_selected = selected;
+                    
+                    if ui.checkbox(&mut new_selected, key).changed() {
+                        if new_selected {
+                            if !self.selected_keys_stage2.contains(key) {
+                                self.selected_keys_stage2.push(key.clone());
                             }
+                        } else {
+                            self.selected_keys_stage2.retain(|k| k != key);
                         }
-                    });
+                    }
                 }
-            });
+             });
+            
+            if !self.selected_keys_stage2.is_empty() {
+                ui.label(format!("選択済み: {:?}", self.selected_keys_stage2));
+            }
+        });
+        
         ui.add_space(10.0);
-        let next_enabled = !self.selected_keys_stage1.is_empty() && !self.selected_keys_stage2.is_empty();
-        if next_enabled {
+        
+        // 次へボタン (全ての設定が完了した場合のみ有効)
+        let ready = !self.selected_keys_stage1.is_empty() 
+            && !self.selected_keys_stage2.is_empty();
+            
+        if ready {
             if AppButton::new("次へ").show(ui).clicked() {
                 on_next();
             }
         } else {
-            AppButton::new("次へ")
-                .with_fill(egui::Color32::from_gray(180))
-                .with_text_color(egui::Color32::from_gray(80))
-                .show(ui);
+            ui.add_enabled(false, egui::Button::new("次へ (設定を完了してください)"));
         }
     }
 } 

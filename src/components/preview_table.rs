@@ -24,6 +24,9 @@ pub struct PreviewTable {
     pub page: usize, // 現在のページ番号
     pub initialized: bool, // 初期化フラグ
     pub column_sorts: Vec<ColumnSort>, // 各列のソート設定
+    // キャッシュを追加
+    cached_column_widths: Option<Vec<f32>>,
+    pub last_render_frame: u64,
 }
 
 impl Default for PreviewTable {
@@ -34,6 +37,8 @@ impl Default for PreviewTable {
             page: 0,
             initialized: false,
             column_sorts: Vec::new(),
+            cached_column_widths: None,
+            last_render_frame: 0,
         }
     }
 }
@@ -46,24 +51,22 @@ impl PreviewTable {
             page: 0,
             initialized: false,
             column_sorts: Vec::new(),
+            cached_column_widths: None,
+            last_render_frame: 0,
         }
     }
 
     pub fn set_preview_data(&mut self, data: Vec<Vec<String>>) {
-        println!("[PREVIEW_TABLE] set_preview_data called - current columns: {:?}", self.columns);
         self.preview_data = data; // プレビューデータを設定
         self.page = 0;
         // ソート設定を初期化
         self.initialize_sort_settings();
-        println!("[PREVIEW_TABLE] Preview data set - {} rows", self.preview_data.len());
+        // キャッシュをクリア
+        self.cached_column_widths = None;
     }
     
     /// 新しいデータを設定し、現在の列順序を保持する
     pub fn set_preview_data_with_columns(&mut self, new_columns: Vec<String>, data: Vec<Vec<String>>) {
-        println!("[PREVIEW_TABLE] set_preview_data_with_columns called");
-        println!("[PREVIEW_TABLE] Current columns: {:?}", self.columns);
-        println!("[PREVIEW_TABLE] New columns: {:?}", new_columns);
-        
         // 既存の列順序がある場合は保持する
         if !self.columns.is_empty() && self.columns.len() == new_columns.len() {
             // 現在の列順序に従ってデータを並び替える
@@ -78,7 +81,8 @@ impl PreviewTable {
         }
         
         self.page = 0;
-        println!("[PREVIEW_TABLE] Final column order: {:?}", self.columns);
+        // キャッシュをクリア
+        self.cached_column_widths = None;
     }
     
     /// ソート設定を初期化
@@ -166,9 +170,6 @@ impl PreviewTable {
             return; // ソートキーがない場合は何もしない
         }
         
-        let start_time = std::time::Instant::now();
-        println!("[SORT] Applying sort with keys: {:?} to {} rows", sort_keys, self.preview_data.len());
-        
         // データをソート
         self.preview_data.sort_by(|a, b| {
             for (col_index, direction) in &sort_keys {
@@ -197,12 +198,6 @@ impl PreviewTable {
             }
             std::cmp::Ordering::Equal
         });
-        
-        let sort_time = start_time.elapsed();
-        if sort_time.as_millis() > 5 { // 5ms以上の場合のみログ出力
-            println!("[PERFORMANCE] Sort took {:?} for {} rows", sort_time, self.preview_data.len());
-        }
-        println!("[SORT] Sort applied successfully");
     }
 
     /// 現在の列順序に従って新しいデータを並び替える
@@ -214,12 +209,9 @@ impl PreviewTable {
             if let Some(new_index) = new_columns.iter().position(|c| c == current_col) {
                 column_mapping.push(new_index);
             } else {
-                println!("[PREVIEW_TABLE] Warning: Column '{}' not found in new data", current_col);
                 return data; // 列が見つからない場合は元のデータを返す
             }
         }
-        
-        println!("[PREVIEW_TABLE] Column mapping: {:?}", column_mapping);
         
         // データを並び替える
         let reordered_data = data.into_iter().map(|row| {
@@ -235,28 +227,28 @@ impl PreviewTable {
         reordered_data
     }
 
-    /// ヘッダー＋最初の数行の最大文字数からカラム幅を自動計算
-    pub fn auto_column_widths(&self) -> Vec<f32> {
-        let mut widths = vec![];
-        for (i, col) in self.columns.iter().enumerate() {
-            let mut max_len = col.chars().count();
-            for row in self.preview_data.iter().take(10) {
-                if let Some(cell) = row.get(i) {
-                    max_len = max_len.max(cell.chars().count());
+    /// ヘッダー＋最初の数行の最大文字数からカラム幅を自動計算（キャッシュ付き）
+    pub fn auto_column_widths(&mut self) -> &Vec<f32> {
+        if self.cached_column_widths.is_none() {
+            let mut widths = vec![];
+            for (i, col) in self.columns.iter().enumerate() {
+                let mut max_len = col.chars().count();
+                for row in self.preview_data.iter().take(10) {
+                    if let Some(cell) = row.get(i) {
+                        max_len = max_len.max(cell.chars().count());
+                    }
                 }
+                // 文字数×ピクセル幅係数で幅を決定（日本語は1文字約14px+余白）
+                widths.push((max_len as f32) * 14.0 + 24.0);
             }
-            // 文字数×ピクセル幅係数で幅を決定（日本語は1文字約14px+余白）
-            widths.push((max_len as f32) * 14.0 + 24.0);
+            self.cached_column_widths = Some(widths);
         }
-        widths
+        self.cached_column_widths.as_ref().unwrap()
     }
 
     /// 列を左に移動（インデックスを小さくする）
     pub fn move_column_left(&mut self, col_index: usize) {
         if col_index > 0 && col_index < self.columns.len() {
-            println!("[COLUMN_MOVE] Moving column '{}' left (index {} -> {})", 
-                self.columns[col_index], col_index, col_index - 1);
-            
             // 列名を入れ替え
             self.columns.swap(col_index - 1, col_index);
             
@@ -272,16 +264,14 @@ impl PreviewTable {
                 }
             }
             
-            println!("[COLUMN_MOVE] New column order: {:?}", self.columns);
+            // キャッシュをクリア
+            self.cached_column_widths = None;
         }
     }
     
     /// 列を右に移動（インデックスを大きくする）
     pub fn move_column_right(&mut self, col_index: usize) {
         if col_index < self.columns.len() - 1 {
-            println!("[COLUMN_MOVE] Moving column '{}' right (index {} -> {})", 
-                self.columns[col_index], col_index, col_index + 1);
-            
             // 列名を入れ替え
             self.columns.swap(col_index, col_index + 1);
             
@@ -297,11 +287,33 @@ impl PreviewTable {
                 }
             }
             
-            println!("[COLUMN_MOVE] New column order: {:?}", self.columns);
+            // キャッシュをクリア
+            self.cached_column_widths = None;
         }
     }
 
     pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
+        // 軽量な再帰防止システム（ちらつき防止）
+        static mut IS_RENDERING: bool = false;
+        
+        unsafe {
+            // 既にレンダリング中の場合は即座にリターン（再帰防止のみ）
+            if IS_RENDERING {
+                return;
+            }
+            
+            IS_RENDERING = true;
+        }
+        
+        // レンダリング処理の実行
+        self.render_internal(ui, on_next);
+        
+        unsafe {
+            IS_RENDERING = false;
+        }
+    }
+    
+    fn render_internal(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
         ui.label(format!("プレビュー（全{}行、ページ表示）", self.preview_data.len()));
         
         // パフォーマンス情報を表示
@@ -309,7 +321,7 @@ impl PreviewTable {
             ui.label(format!("⚠️ 大量データ（{}行）- ページ切り替えで快適に閲覧", self.preview_data.len()));
         }
         
-        let rows_per_page = 20; // 20行固定に戻す
+        let rows_per_page = 20;
         
         // 列順序変更UI
         ui.horizontal(|ui| {
@@ -318,7 +330,7 @@ impl PreviewTable {
         
         // 各列に対する移動ボタン
         if self.columns.len() > 1 {
-            let mut column_move_actions = Vec::new(); // 移動操作を収集
+            let mut column_move_actions = Vec::new();
             
             ui.horizontal(|ui| {
                 for (i, col_name) in self.columns.iter().enumerate() {
@@ -350,18 +362,12 @@ impl PreviewTable {
             });
             
             // 収集した移動操作を実行
-            let move_count = column_move_actions.len();
             for (direction, index) in column_move_actions {
-                println!("[UI] Executing column move: {} at index {}", direction, index);
                 match direction {
                     "left" => self.move_column_left(index),
                     "right" => self.move_column_right(index),
                     _ => {}
                 }
-            }
-            
-            if move_count > 0 {
-                println!("[UI] Total {} column move operations executed", move_count);
             }
             
             ui.separator();
@@ -373,7 +379,7 @@ impl PreviewTable {
                 ui.label("ソート設定:");
             });
             
-            let mut sort_change_actions = Vec::new(); // ソート変更操作を収集
+            let mut sort_change_actions = Vec::new();
             
             ui.horizontal(|ui| {
                 for (i, col_name) in self.columns.iter().enumerate() {
@@ -435,14 +441,8 @@ impl PreviewTable {
             });
             
             // 収集したソート変更操作を実行
-            let sort_change_count = sort_change_actions.len();
             for (col_index, direction) in sort_change_actions {
-                println!("[UI] Setting sort for column {}: {:?}", col_index, direction);
                 self.set_column_sort(col_index, direction);
-            }
-            
-            if sort_change_count > 0 {
-                println!("[UI] Total {} sort operations executed", sort_change_count);
             }
             
             ui.separator();
@@ -452,28 +452,21 @@ impl PreviewTable {
         let total_pages = (total + rows_per_page - 1) / rows_per_page;
         let start = self.page * rows_per_page;
         let end = ((self.page + 1) * rows_per_page).min(total);
+        
+        // まずcol_widthsを計算してからpreview_rowsを取得（borrowing conflict回避）
+        let col_widths = self.auto_column_widths().clone();
         let preview_rows = if start < end {
             &self.preview_data[start..end]
         } else {
             &[]
         };
         
-        println!("[PREVIEW_TABLE] Total data: {} rows, Page: {}, Start: {}, End: {}, Showing: {} rows", 
-            total, self.page, start, end, preview_rows.len());
-        println!("[PREVIEW_TABLE] Columns: {}, First row sample: {:?}", 
-            self.columns.len(), 
-            preview_rows.get(0).map(|r| &r[0..r.len().min(2)])
-        );
-        
-        let col_widths = self.auto_column_widths();
         egui::ScrollArea::horizontal().show(ui, |ui| {
-            let start_time = std::time::Instant::now();
-            
             let mut table = egui_extras::TableBuilder::new(ui)
                 .striped(true)
                 .resizable(true)
                 .min_scrolled_height(800.0);
-            for (i, w) in col_widths.iter().enumerate() {
+            for w in &col_widths {
                 table = table.column(egui_extras::Column::initial(*w));
             }
             table
@@ -483,7 +476,6 @@ impl PreviewTable {
                     }
                 })
                 .body(|mut body| {
-                    let mut row_count = 0;
                     for row in preview_rows {
                         body.row(18.0, |mut row_ui| {
                             for cell in row {
@@ -492,15 +484,8 @@ impl PreviewTable {
                                 });
                             }
                         });
-                        row_count += 1;
                     }
-                    println!("[PREVIEW_TABLE] Actually rendered {} rows in table body", row_count);
                 });
-                
-            let render_time = start_time.elapsed();
-            if render_time.as_millis() > 10 { // 10ms以上の場合のみログ出力
-                println!("[PERFORMANCE] Table rendering took {:?} for {} rows", render_time, preview_rows.len());
-            }
         });
         ui.horizontal(|ui| {
             // 最初のページへボタン

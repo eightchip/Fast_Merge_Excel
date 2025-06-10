@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-eframe = "0.26.0"
+eframe = { version = "0.26.0", features = ["wgpu", "glow"] }
 egui = "0.26.0"
 egui_extras = "0.26.0"
 rfd = "0.12.1"

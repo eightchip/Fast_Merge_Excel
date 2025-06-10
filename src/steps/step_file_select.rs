@@ -6,7 +6,6 @@ use crate::components::file_selector::get_columns_from_xlsx;
 use crate::components::file_selector::FileSelector;
 
 pub fn render_file_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
-    println!("RENDER FILE SELECT");
     let next_step = {
         let state = app_state.lock().unwrap();
         state.step + 1
@@ -68,9 +67,35 @@ pub fn render_file_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                     vec![]
                 };
                 move |state: &mut AppState| {
+                    // columns は後で move するためクローンを保持
+                    let columns_clone = columns.clone();
                     state.file_selector.columns_per_file = columns;
                     state.processing_error = error;
                     state.key_selector.available_keys = common_columns;
+                    // MultiStageJoin 用に AB, BC 共通キーを算出
+                    if matches!(state.mode, crate::app::MergeMode::MultiStageJoin) {
+                        // AB 共通キー
+                        let ab_keys: Vec<String> = if !columns_clone[0].is_empty() && !columns_clone[1].is_empty() {
+                            let set_a: std::collections::HashSet<String> = columns_clone[0].iter().cloned().collect();
+                            let set_b: std::collections::HashSet<String> = columns_clone[1].iter().cloned().collect();
+                            set_a.intersection(&set_b).cloned().collect()
+                        } else { vec![] };
+
+                        // BC 共通キー
+                        let bc_keys: Vec<String> = if !columns_clone[1].is_empty() && !columns_clone[2].is_empty() {
+                            let set_b: std::collections::HashSet<String> = columns_clone[1].iter().cloned().collect();
+                            let set_c: std::collections::HashSet<String> = columns_clone[2].iter().cloned().collect();
+                            set_b.intersection(&set_c).cloned().collect()
+                        } else { vec![] };
+
+                        state.ab_common_keys = ab_keys.clone();
+                        state.bc_common_keys = bc_keys.clone();
+                        state.multi_stage_columns = (ab_keys.clone(), bc_keys.clone());
+                        
+                        // MultiStageKeySelector に利用可能なキーを設定
+                        state.multi_stage_key_selector.available_keys_stage1 = ab_keys;
+                        state.multi_stage_key_selector.available_keys_stage2 = bc_keys;
+                    }
                 }
             });
         },

@@ -6,7 +6,7 @@ use crate::components::save_panel::save_to_xlsx;
 use crate::components::button::AppButton;
 
 pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
-    println!("[DEBUG] Rendering save panel");
+    // デバッグログを削除
     let (current_step, next_step) = {
         let state = app_state.lock().unwrap();
         (state.step, state.step + 1)
@@ -16,7 +16,7 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
         let state = app_state.lock().unwrap();
         state.save_panel.clone()
     };
-    println!("[DEBUG] Save panel initialized");
+    // デバッグログを削除
     save_panel.render(
         ui,
         &mut move |file_name| {
