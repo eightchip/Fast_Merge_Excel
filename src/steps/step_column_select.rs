@@ -27,7 +27,7 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                         // Set default join type based on mode if not set
                         match state.mode {
                             crate::app::MergeMode::ZennenTaihi => {
-                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::FullOuter);
+                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
                             },
                             crate::app::MergeMode::MultiStageJoin => {
                                 state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
@@ -41,6 +41,9 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                             // crate::app::MergeMode::TateRenketsu => {
                             //     state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Concat);
                             // },
+                            crate::app::MergeMode::SplitSave => {
+                                // 分割保存モードでは結合タイプは不要
+                            },
                             crate::app::MergeMode::None => {},
                         }
                     }

@@ -27,7 +27,7 @@ use crate::components::preview_async::PreviewAsyncComponent;
 use crate::components::button::AppButton;
 use polars::prelude::{JoinArgs, JoinType as PolarsJoinType};
 
-use crate::steps::{step_file_select, step_key_select, step_column_select, step_preview, mode_selector, zennen_taihi_wizard, multi_stage_wizard, kanzen_icchi_wizard, hikaku_wizard, concat_wizard};
+use crate::steps::{step_file_select, step_key_select, step_column_select, step_preview, mode_selector, zennen_taihi_wizard, multi_stage_wizard, kanzen_icchi_wizard, hikaku_wizard, concat_wizard, split_save_wizard};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum MergeMode {
@@ -37,6 +37,7 @@ pub enum MergeMode {
     // Hikaku, // 比較用結合
     // TateRenketsu, // 縦連結
     MultiStageJoin, // 2段階左結合
+    SplitSave, // 主キー毎の分割保存
 }
 
 #[derive(Clone)]
@@ -187,6 +188,7 @@ impl App {
                     // MergeMode::KanzenIcchi => kanzen_icchi_wizard::render_kanzen_icchi_wizard(state.clone(), ui, ctx),
                     // MergeMode::Hikaku => hikaku_wizard::render_hikaku_wizard(state.clone(), ui, ctx),
                     // MergeMode::TateRenketsu => concat_wizard::render_concat_wizard(state.clone(), ui, ctx),
+                    MergeMode::SplitSave => split_save_wizard::render_split_save_wizard(state.clone(), ui, ctx),
                     MergeMode::None => {},
                 }
             }

@@ -11,4 +11,5 @@ pub mod multi_stage_wizard;
 pub mod kanzen_icchi_wizard;
 pub mod hikaku_wizard;
 pub mod concat_wizard;
+pub mod split_save_wizard;
 // 他のstepファイルがあればここに追加
