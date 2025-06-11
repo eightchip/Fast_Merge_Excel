@@ -9,10 +9,12 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
         state.step + 1
     };
     let app_state_clone = app_state.clone();
+    let app_state_prev = app_state.clone();
     let mut column_selector = {
         let state = app_state.lock().unwrap();
         state.column_selector.clone()
     };
+    let app_state_prev_clone = app_state_prev.clone();
     column_selector.render(
         ui,
         &mut move || {
@@ -45,8 +47,22 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                 }
             });
         },
+        &mut move || {
+            let mut state = app_state_prev_clone.lock().unwrap();
+            state.step = 2; // キー選択画面に戻る
+        }
     );
-    // UI描画後、column_selectorの内容をAppStateに戻す
+    
+    // 「前へ」ボタンを追加
+    ui.add_space(10.0);
+    ui.horizontal(|ui| {
+        if ui.button("← 前へ（キー選択）").clicked() {
+            let mut state = app_state_prev.lock().unwrap();
+            state.step = 2; // キー選択画面に戻る
+        }
+    });
+    
+    // 状態を保存
     {
         let mut state = app_state.lock().unwrap();
         state.column_selector = column_selector;

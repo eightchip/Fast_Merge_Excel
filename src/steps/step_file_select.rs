@@ -11,6 +11,7 @@ pub fn render_file_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
         state.step + 1
     };
     let app_state_clone = app_state.clone();
+    let app_state_prev = app_state.clone();
     let mut file_selector = {
         let state = app_state.lock().unwrap();
         state.file_selector.clone()
@@ -103,6 +104,16 @@ pub fn render_file_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
             // 列情報の初期化など必要ならここで
         },
     );
+    
+    // 「前へ」ボタンを追加
+    ui.add_space(10.0);
+    ui.horizontal(|ui| {
+        if ui.button("← 前へ（モード選択）").clicked() {
+            let mut state = app_state_prev.lock().unwrap();
+            state.step = 0; // モード選択画面に戻る
+        }
+    });
+    
     // UI描画後、file_selectorの内容をAppStateに戻す
     {
         let mut state = app_state.lock().unwrap();

@@ -2,7 +2,7 @@ use egui::Ui;
 use crate::app::AppState;
 use std::sync::{Arc, Mutex};
 use crate::steps::async_step::async_step_transition;
-use crate::components::save_panel::save_to_xlsx;
+use crate::components::save_panel::{save_to_xlsx, SaveError};
 use crate::components::button::AppButton;
 
 pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
@@ -32,18 +32,38 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                 move |state: &mut AppState| {
                     println!("[SAVE] Starting save process for file: {}", file_name);
                     
-                    // 完全なデータを取得（保存用）
-                    if let Some((columns, complete_data)) = &state.complete_result_data {
-                        println!("[SAVE] Saving {} columns and {} rows", columns.len(), complete_data.len());
-                        
-                        // 実際のファイル保存
-                        match save_to_xlsx(&file_name, columns, complete_data) {
+                    // 最新のデータを取得（ソート済みプレビューデータを優先）
+                    let (save_columns, save_data) = if state.preview_table.has_sorted_data() {
+                        // プレビューテーブルにソート済みデータがある場合はそれを使用
+                        let (sorted_cols, sorted_data) = state.preview_table.get_sorted_data();
+                        println!("[SAVE] Using sorted preview data: {} columns, {} rows", sorted_cols.len(), sorted_data.len());
+                        if state.preview_table.is_sorted() {
+                            println!("[SAVE] Data has been sorted by user");
+                        }
+                        (sorted_cols, sorted_data)
+                    } else if let Some((columns, complete_data)) = &state.complete_result_data {
+                        // フォールバック：元の完全なデータを使用
+                        println!("[SAVE] Using original complete data: {} columns, {} rows", columns.len(), complete_data.len());
+                        (columns.clone(), complete_data.clone())
+                    } else {
+                        println!("[SAVE] No data available for saving");
+                        // データがない場合
+                        state.save_result = Some(false);
+                        state.save_error_message = Some("保存用のデータが見つかりません".to_string());
+                        return;
+                    };
+                    
+                    // 実際のファイル保存
+                    println!("[SAVE] Attempting to save to: {}", file_name);
+                    match save_to_xlsx(&file_name, &save_columns, &save_data) {
                             Ok(()) => {
-                                println!("[SAVE] File saved successfully: {}", file_name);
+                                println!("✅ [SAVE] File saved successfully: {}", file_name);
+                                println!("[SAVE] Save operation completed without errors");
                                 
                                 // 保存成功をAppStateに記録
                                 state.save_result = Some(true);
                                 state.save_error_message = None;
+                                state.save_panel.clear_error(); // エラーをクリア
                                 
                                 // 保存先フォルダを開く（絶対パスで処理）
                                 let file_path = std::path::Path::new(&file_name);
@@ -72,24 +92,32 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                                     .spawn()
                                     .map_err(|e| println!("[SAVE] Failed to open folder: {:?}", e));
                             }
-                            Err(e) => {
-                                println!("[SAVE] Error saving file: {:?}", e);
+                            Err(save_error) => {
+                                println!("❌ [SAVE] Save error occurred: {:?}", save_error);
+                                println!("[SAVE] Error details: {}", save_error.user_friendly_message());
                                 
-                                // 保存失敗をAppStateに記録
+                                // SavePanelにエラー情報を設定（UIで表示される）
+                                state.save_panel.set_error(save_error.clone());
+                                
+                                // レガシーサポートのためAppStateにも設定
                                 state.save_result = Some(false);
-                                state.save_error_message = Some(format!("保存に失敗しました: {:?}", e));
+                                state.save_error_message = Some(save_error.user_friendly_message());
                             }
                         }
-                    } else {
-                        println!("[SAVE] No complete data available for saving");
-                        // データがない場合も失敗として記録
-                        state.save_result = Some(false);
-                        state.save_error_message = Some("保存用のデータが見つかりません".to_string());
-                    }
+                    
                 }
             });
         },
     );
+    // 「前へ」ボタンを追加
+    ui.add_space(10.0);
+    ui.horizontal(|ui| {
+        if ui.button("← 前へ（プレビュー）").clicked() {
+            let mut state = app_state.lock().unwrap();
+            state.step = 4; // プレビュー画面に戻る
+        }
+    });
+    
     // UI描画後、save_panelの内容をAppStateに戻す
     {
         let mut state = app_state.lock().unwrap();

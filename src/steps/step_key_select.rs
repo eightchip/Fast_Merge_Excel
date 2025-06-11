@@ -9,6 +9,7 @@ pub fn render_key_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
         state.step + 1
     };
     let app_state_clone = app_state.clone();
+    let app_state_prev = app_state.clone();
     let mode = {
         let s = app_state.lock().unwrap();
         s.mode.clone()
@@ -165,4 +166,13 @@ pub fn render_key_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
             state.key_selector = key_selector;
         }
     }
+    
+    // 「前へ」ボタンを追加
+    ui.add_space(10.0);
+    ui.horizontal(|ui| {
+        if ui.button("← 前へ（ファイル選択）").clicked() {
+            let mut state = app_state_prev.lock().unwrap();
+            state.step = 1; // ファイル選択画面に戻る
+        }
+    });
 } 

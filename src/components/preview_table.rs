@@ -552,6 +552,21 @@ impl PreviewTable {
             on_next();
         }
     }
+
+    /// 現在のソート済みデータと列名を取得（保存用）
+    pub fn get_sorted_data(&self) -> (Vec<String>, Vec<Vec<String>>) {
+        (self.columns.clone(), self.preview_data.clone())
+    }
+    
+    /// ソート済みデータが利用可能かチェック
+    pub fn has_sorted_data(&self) -> bool {
+        !self.columns.is_empty() && !self.preview_data.is_empty()
+    }
+    
+    /// ソートが適用されているかチェック
+    pub fn is_sorted(&self) -> bool {
+        self.column_sorts.iter().any(|sort| sort.direction != SortDirection::None)
+    }
 }
 
 

@@ -331,35 +331,31 @@ fn add_difference_columns_from_joined_df(df: DataFrame) -> DataFrame {
 
 // 同期的なプレビューデータ生成関数
 fn generate_preview_data_sync(state: &mut AppState) {
-    // 1. ファイルパス取得
-    let files = &state.file_selector.selected_files;
-    let paths: Vec<_> = files.iter().filter_map(|f| f.as_ref()).collect();
-    if paths.len() < 2 {
-        state.preview_result = Some((vec![], vec![]));
-        return;
-    }
+                    // 1. ファイルパス取得
+                    let files = &state.file_selector.selected_files;
+                    let paths: Vec<_> = files.iter().filter_map(|f| f.as_ref()).collect();
+                    if paths.len() < 2 {
+                        state.preview_result = Some((vec![], vec![]));
+                        return;
+                    }
     
     // 2. DataFrame化（最初の1000行のみ読み込み）
-    use crate::components::file_selector::read_xlsx_to_df;
+                    use crate::components::file_selector::read_xlsx_to_df;
     let mut dfs: Vec<DataFrame> = Vec::new();
     
     for (i, path) in paths.iter().enumerate() {
-        let mut df = read_xlsx_to_df(path);
+        let df = read_xlsx_to_df(path);
         
-        // プレビュー用に行数を制限（フリーズ防止）
-        if df.height() > 1000 {
-            df = df.slice(0, 1000);
-        }
-        
+        // 全データを表示（行数制限を削除）
         dfs.push(df);
     }
     
-    if dfs.iter().any(|df| df.width() == 0) {
-        state.preview_result = Some((vec![], vec![]));
-        return;
-    }
+                    if dfs.iter().any(|df| df.width() == 0) {
+                        state.preview_result = Some((vec![], vec![]));
+                        return;
+                    }
     
-    // 3. 結合キー・種別取得
+                    // 3. 結合キー・種別取得
     let is_multi_stage = matches!(state.mode, crate::app::MergeMode::MultiStageJoin);
     let (keys, join_type) = if is_multi_stage {
         // MultiStageJoin は左結合固定
@@ -367,37 +363,37 @@ fn generate_preview_data_sync(state: &mut AppState) {
     } else {
         (&state.key_selector.selected_keys, state.join_type_picker.selected_join_type.clone())
     };
-    let selected_columns = state.column_selector.selected_columns.clone();
+                    let selected_columns = state.column_selector.selected_columns.clone();
     
-    if keys.is_empty() || join_type.is_none() || selected_columns.is_empty() {
-        state.preview_result = Some((vec![], vec![]));
-        return;
-    }
+                    if keys.is_empty() || join_type.is_none() || selected_columns.is_empty() {
+                        state.preview_result = Some((vec![], vec![]));
+                        return;
+                    }
     
-    let join_type = join_type.unwrap();
-    use crate::components::join_type_picker::to_polars_join_type;
-    let polars_join_type = to_polars_join_type(&join_type);
+                    let join_type = join_type.unwrap();
+                    use crate::components::join_type_picker::to_polars_join_type;
+                    let polars_join_type = to_polars_join_type(&join_type);
 
-    // 4. join実行（A,Bのみ対応。Cは未対応）
-    let mut df = dfs[0].clone();
+                    // 4. join実行（A,Bのみ対応。Cは未対応）
+                    let mut df = dfs[0].clone();
     
-    if dfs.len() >= 2 {
-        let right = &dfs[1];
+                    if dfs.len() >= 2 {
+                        let right = &dfs[1];
         
-        let left_keys: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
-        let right_keys = left_keys.clone();
+                        let left_keys: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
+                        let right_keys = left_keys.clone();
         
-        if let Ok(joined) = df.join(
-            right,
-            left_keys.as_slice(),
-            right_keys.as_slice(),
-            polars_join_type.into(),
-        ) {
-            df = joined;
-        } else {
-            state.preview_result = Some((vec![], vec![]));
-            return;
-        }
+                        if let Ok(joined) = df.join(
+                            right,
+                            left_keys.as_slice(),
+                            right_keys.as_slice(),
+                            polars_join_type.into(),
+                        ) {
+                            df = joined;
+                        } else {
+                            state.preview_result = Some((vec![], vec![]));
+                            return;
+                        }
     }
     
     // 5. 前年対比の場合は差額列を追加（列選択前に実行）
@@ -478,10 +474,10 @@ fn generate_preview_data_sync(state: &mut AppState) {
         
         let col_refs: Vec<&str> = final_columns.iter().map(|s| s.as_str()).collect();
         
-        if let Ok(filtered) = out_df.select(col_refs.as_slice()) {
-            out_df = filtered;
-        }
-    }
+                        if let Ok(filtered) = out_df.select(col_refs.as_slice()) {
+                            out_df = filtered;
+                        }
+                    }
     
     let final_df = out_df;
     
@@ -508,7 +504,7 @@ fn generate_preview_data_sync(state: &mut AppState) {
             } else { "" };
             if col_name.contains("取引先") || col_name.contains("コード") || col_name.contains("番号") {
                 if cleaned.trim().is_empty() { "".to_string() } else { cleaned }
-            } else {
+                    } else {
                 let is_truly_null = cleaned == "null" || cleaned == "N/A" || cleaned == "NaN" || cleaned == "None" || cleaned.is_empty();
                 if !is_truly_null { cleaned } else {
                     if numeric_columns.contains(col_name) { "0".to_string() } else { "".to_string() }
@@ -568,6 +564,14 @@ pub fn render_preview(app_state: Arc<Mutex<AppState>>, ui: &mut Ui, ctx: &egui::
         // プレビューテーブルのレンダリング
         state.preview_table.render(ui, &mut || {
             step_to_update = Some(next_step);
+        });
+        
+        // 「前へ」ボタンを追加
+        ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            if ui.button("← 前へ（列選択）").clicked() {
+                state.step = 3; // 列選択画面に戻る
+            }
         });
         
         // ステップ更新（一度だけ）

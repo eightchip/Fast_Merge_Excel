@@ -16,7 +16,7 @@ impl ColumnSelector {
         }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
+    pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut(), on_prev: &mut dyn FnMut()) {
         ui.label("出力対象の列を選択してください（複数可）");
         ui.horizontal(|ui| {
             if AppButton::new("すべて選択").show(ui).clicked() {
@@ -67,7 +67,7 @@ impl ColumnSelector {
                     .show(ui);
             }
             if AppButton::new("前へ").show(ui).clicked() {
-                // 前へコールバックまたはself.step -= 1
+                on_prev();
             }
             // ソートキーUIはapp.rs側で呼ぶのでここでは省略
         });
