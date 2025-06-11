@@ -374,15 +374,43 @@ fn generate_preview_data_sync(state: &mut AppState) {
                     use crate::components::join_type_picker::to_polars_join_type;
                     let polars_join_type = to_polars_join_type(&join_type);
 
-                    // 4. join実行（A,Bのみ対応。Cは未対応）
+                    // 4. join実行（A,B,C対応: MultiStageJoinのみ2段階結合）
                     let mut df = dfs[0].clone();
-    
-                    if dfs.len() >= 2 {
+                    if is_multi_stage && dfs.len() >= 3 {
+                        // 2段階左結合: (A left join B) left join C
+                        let ab_keys = &state.selected_ab_keys;
+                        let bc_keys = &state.selected_bc_keys;
+                        let left_keys_ab: Vec<&str> = ab_keys.iter().map(|s| s.as_str()).collect();
+                        let right_keys_ab = left_keys_ab.clone();
+                        let left_keys_bc: Vec<&str> = bc_keys.iter().map(|s| s.as_str()).collect();
+                        let right_keys_bc = left_keys_bc.clone();
+                        // 1. AとBを左結合
+                        if let Ok(ab_joined) = dfs[0].join(
+                            &dfs[1],
+                            left_keys_ab.as_slice(),
+                            right_keys_ab.as_slice(),
+                            polars::prelude::JoinType::Left.into(),
+                        ) {
+                            // 2. ABとCを左結合
+                            if let Ok(abc_joined) = ab_joined.join(
+                                &dfs[2],
+                                left_keys_bc.as_slice(),
+                                right_keys_bc.as_slice(),
+                                polars::prelude::JoinType::Left.into(),
+                            ) {
+                                df = abc_joined;
+                            } else {
+                                state.preview_result = Some((vec![], vec![]));
+                                return;
+                            }
+                        } else {
+                            state.preview_result = Some((vec![], vec![]));
+                            return;
+                        }
+                    } else if dfs.len() >= 2 {
                         let right = &dfs[1];
-        
                         let left_keys: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
                         let right_keys = left_keys.clone();
-        
                         if let Ok(joined) = df.join(
                             right,
                             left_keys.as_slice(),
@@ -394,7 +422,7 @@ fn generate_preview_data_sync(state: &mut AppState) {
                             state.preview_result = Some((vec![], vec![]));
                             return;
                         }
-    }
+                    }
     
     // 5. 前年対比の場合は差額列を追加（列選択前に実行）
     let is_zennen_taihi = matches!(state.mode, crate::app::MergeMode::ZennenTaihi);

@@ -1,3 +1,26 @@
-/target
-.xlsx
-.xls
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+/.cargo/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VSCode
+.vscode/
+
+# JetBrains
+.idea/
+*.iml
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+
+# Excel files (if not needed in repo)
+*.xlsx
+*.xls

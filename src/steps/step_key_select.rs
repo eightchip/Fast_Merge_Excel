@@ -38,7 +38,32 @@ pub fn render_key_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                     let mut all_columns = std::collections::HashSet::new();
                     
                     // MultiStageJoinモードでは結合後の列名を予測して追加
-                    if state.file_selector.columns_per_file.len() >= 2 {
+                    if matches!(state.mode, crate::app::MergeMode::MultiStageJoin) && state.file_selector.columns_per_file.len() >= 3 {
+                        let file_a_cols = &state.file_selector.columns_per_file[0];
+                        let file_b_cols = &state.file_selector.columns_per_file[1];
+                        let file_c_cols = &state.file_selector.columns_per_file[2];
+
+                        // ファイルAの列（そのまま）
+                        for col in file_a_cols {
+                            all_columns.insert(col.clone());
+                        }
+                        // ファイルBの列（Aと重複する場合は_rightサフィックス）
+                        for col in file_b_cols {
+                            if file_a_cols.contains(col) {
+                                all_columns.insert(format!("{}_right", col));
+                            } else {
+                                all_columns.insert(col.clone());
+                            }
+                        }
+                        // ファイルCの列（A/Bと重複する場合は_cサフィックス）
+                        for col in file_c_cols {
+                            if file_a_cols.contains(col) || file_b_cols.contains(col) {
+                                all_columns.insert(format!("{}_c", col));
+                            } else {
+                                all_columns.insert(col.clone());
+                            }
+                        }
+                    } else if state.file_selector.columns_per_file.len() >= 2 {
                         let file_a_cols = &state.file_selector.columns_per_file[0];
                         let file_b_cols = &state.file_selector.columns_per_file[1];
                         
@@ -59,23 +84,21 @@ pub fn render_key_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                             
                             println!("[COLUMN_SELECT] Zennen Taihi mode - excluding _right columns from selection");
                         } else {
-                            // 通常モードでは結合後の列名を予測して表示
+                            // 通常モードでも_right列を分かりやすくするため、基本列のみ表示
                             
                             // ファイルAの列（そのまま）
                             for col in file_a_cols {
                                 all_columns.insert(col.clone());
                             }
                             
-                            // ファイルBの列（重複する場合は_rightサフィックス）
+                            // ファイルBで新しい列のみ追加（重複する列は除外）
                             for col in file_b_cols {
-                                if file_a_cols.contains(col) {
-                                    // 重複する列は_rightサフィックス付きで追加
-                                    all_columns.insert(format!("{}_right", col));
-                                } else {
-                                    // 重複しない列はそのまま追加
+                                if !file_a_cols.contains(col) {
                                     all_columns.insert(col.clone());
                                 }
                             }
+                            
+                            println!("[COLUMN_SELECT] Normal mode - showing user-friendly column selection");
                         }
                     } else {
                         // 通常モード：すべてのファイルの列を追加
