@@ -7,9 +7,9 @@ pub fn render_mode_selector(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
     let modes = [
         (MergeMode::ZennenTaihi, "前年対比（外部結合）"),
         (MergeMode::MultiStageJoin, "入金照合（2段階左結合）"),
-        (MergeMode::KanzenIcchi, "完全一致検証（内部結合）"),
-        (MergeMode::Hikaku, "比較用結合（左/右結合）"),
-        (MergeMode::TateRenketsu, "縦連結（concat）"),
+        // (MergeMode::KanzenIcchi, "完全一致検証（内部結合）"),
+        // (MergeMode::Hikaku, "比較用結合（左/右結合）"),
+        // (MergeMode::TateRenketsu, "縦連結（concat）"),
     ];
     let mut state = app_state.lock().unwrap();
     for (mode, label) in &modes {

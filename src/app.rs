@@ -33,9 +33,9 @@ use crate::steps::{step_file_select, step_key_select, step_column_select, step_p
 pub enum MergeMode {
     None,
     ZennenTaihi, // 前年対比
-    KanzenIcchi, // 完全一致検証
-    Hikaku, // 比較用結合
-    TateRenketsu, // 縦連結
+    // KanzenIcchi, // 完全一致検証
+    // Hikaku, // 比較用結合
+    // TateRenketsu, // 縦連結
     MultiStageJoin, // 2段階左結合
 }
 
@@ -184,9 +184,9 @@ impl App {
                 match mode {
                     MergeMode::ZennenTaihi => zennen_taihi_wizard::render_zennen_taihi_wizard(state.clone(), ui, ctx),
                     MergeMode::MultiStageJoin => multi_stage_wizard::render_multi_stage_wizard(state.clone(), ui, ctx),
-                    MergeMode::KanzenIcchi => kanzen_icchi_wizard::render_kanzen_icchi_wizard(state.clone(), ui, ctx),
-                    MergeMode::Hikaku => hikaku_wizard::render_hikaku_wizard(state.clone(), ui, ctx),
-                    MergeMode::TateRenketsu => concat_wizard::render_concat_wizard(state.clone(), ui, ctx),
+                    // MergeMode::KanzenIcchi => kanzen_icchi_wizard::render_kanzen_icchi_wizard(state.clone(), ui, ctx),
+                    // MergeMode::Hikaku => hikaku_wizard::render_hikaku_wizard(state.clone(), ui, ctx),
+                    // MergeMode::TateRenketsu => concat_wizard::render_concat_wizard(state.clone(), ui, ctx),
                     MergeMode::None => {},
                 }
             }

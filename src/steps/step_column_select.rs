@@ -32,15 +32,15 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                             crate::app::MergeMode::MultiStageJoin => {
                                 state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
                             },
-                            crate::app::MergeMode::KanzenIcchi => {
-                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Inner);
-                            },
-                            crate::app::MergeMode::Hikaku => {
-                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
-                            },
-                            crate::app::MergeMode::TateRenketsu => {
-                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Concat);
-                            },
+                            // crate::app::MergeMode::KanzenIcchi => {
+                            //     state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Inner);
+                            // },
+                            // crate::app::MergeMode::Hikaku => {
+                            //     state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
+                            // },
+                            // crate::app::MergeMode::TateRenketsu => {
+                            //     state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Concat);
+                            // },
                             crate::app::MergeMode::None => {},
                         }
                     }

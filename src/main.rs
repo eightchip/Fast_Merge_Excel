@@ -39,8 +39,8 @@ fn main() {
         }
     }));
     
-    println!("🚀 Starting Magic Merge Excel 2.0...");
-    let app_name = "Magic Merge Excel 2.0";
+    println!("🚀 Starting Custom_Merge_Excel...");
+    let app_name = "Custom_Merge_Excel";
 
     // winitでプライマリモニターのサイズ取得
     let event_loop = EventLoop::new();
