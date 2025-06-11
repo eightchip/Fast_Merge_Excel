@@ -15,6 +15,7 @@ pub mod multi_stage_key_selector;
 pub mod preview_spinner;
 pub mod preview_async;
 pub mod button;
+pub mod split_file_selector;
 // pub mod join_keys;
 // pub mod file_source; // もし存在する場合は追加
 
@@ -28,3 +29,4 @@ pub mod button;
 // pub use sort_settings::SortSettings;
 
 pub use crate::app::MergeMode;
+

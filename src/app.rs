@@ -104,6 +104,9 @@ pub struct AppState {
     pub compare_output_columns: Vec<String>,
     pub save_result: Option<bool>, // 保存の成功・失敗（None=未実行, Some(true)=成功, Some(false)=失敗）
     pub save_error_message: Option<String>, // 保存エラーメッセージ
+    // 分割保存用
+    pub split_file_path: Option<std::path::PathBuf>,
+    pub split_file_selector: crate::components::split_file_selector::SplitFileSelector,
 }
 
 impl AppState {
@@ -143,6 +146,8 @@ impl AppState {
             compare_output_columns: vec![],
             save_result: None,
             save_error_message: None,
+            split_file_path: None,
+            split_file_selector: crate::components::split_file_selector::SplitFileSelector::new(),
         }
     }
 }
@@ -179,7 +184,7 @@ impl App {
             let state = self.state.clone();
             let step = state.lock().unwrap().step;
             let mode = state.lock().unwrap().mode.clone();
-            if step == 0 {
+            if step == 0 && mode != MergeMode::SplitSave {
                 mode_selector::render_mode_selector(state.clone(), ui);
             } else {
                 match mode {

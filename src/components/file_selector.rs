@@ -7,6 +7,9 @@ use std::path::Path;
 use polars::prelude::*;
 use crate::components::cleaner::clean_and_infer_columns;
 use crate::components::button::AppButton;
+use crate::app::AppState;
+use std::sync::{Arc, Mutex};
+use egui::Context;
 
 #[derive(Clone, Debug)]
 pub struct FileSelector {
@@ -40,7 +43,7 @@ impl FileSelector {
         }
         // 共通列名の抽出やcolumns_per_fileのセットはここでは行わない
         ui.add_space(10.0);
-        let next_enabled = self.selected_files[0].is_some() && self.selected_files[1].is_some();
+        let next_enabled = self.selected_files[0].is_some();
         if next_enabled {
             if AppButton::new("次へ").show(ui).clicked() {
                 println!("NEXT CLICKED");
@@ -88,4 +91,39 @@ pub fn read_xlsx_to_df(path: &Path) -> DataFrame {
         }
     }
     DataFrame::default()
+}
+
+fn render_file_select(state: &mut AppState, ui: &mut Ui) {
+    println!("[DEBUG] render_file_select step: {}, selected_files[0]: {:?}", state.step, state.file_selector.selected_files[0]);
+    ui.heading("分割するExcelファイルを選択してください");
+    ui.add_space(20.0);
+
+    let mut on_next = || {};
+    let mut on_columns_loaded = |columns: [Vec<String>; 3]| {
+        state.key_selector.available_keys = columns[0].clone();
+    };
+
+    // デバッグ出力
+    if let Some(path) = &state.file_selector.selected_files[0] {
+        println!("[DEBUG] selected_files[0]: {:?}", path);
+    } else {
+        println!("[DEBUG] selected_files[0]: None");
+    }
+
+    // ファイル選択UIは常に表示
+    state.file_selector.render(ui, &mut on_next, &mut on_columns_loaded);
+
+    // 「次へ」ボタンだけ条件付きで有効化
+    if state.file_selector.selected_files[0].is_some() {
+        ui.add_space(20.0);
+        if ui.button("次へ").clicked() {
+            state.step = 1;
+        }
+    }
+}
+
+pub fn render_split_save_wizard(app_state: Arc<Mutex<AppState>>, ui: &mut Ui, ctx: &Context) {
+    let mut state = app_state.lock().unwrap();
+    println!("[DEBUG] split_save_wizard step: {}", state.step);
+    // ...
 }

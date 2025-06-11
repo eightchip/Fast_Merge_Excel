@@ -16,7 +16,9 @@ pub fn render_mode_selector(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
     for (mode, label) in &modes {
         let checked = &state.mode == mode;
         if ui.radio(checked, *label).clicked() {
-            state.mode = mode.clone();
+            let mut new_state = AppState::new();
+            new_state.mode = mode.clone();
+            *state = new_state;
         }
     }
     ui.add_space(10.0);
