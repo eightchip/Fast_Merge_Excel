@@ -295,19 +295,15 @@ impl PreviewTable {
     pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
         // 軽量な再帰防止システム（ちらつき防止）
         static mut IS_RENDERING: bool = false;
-        
         unsafe {
-            // 既にレンダリング中の場合は即座にリターン（再帰防止のみ）
             if IS_RENDERING {
                 return;
             }
-            
             IS_RENDERING = true;
         }
-        
-        // レンダリング処理の実行
-        self.render_internal(ui, on_next);
-        
+        egui::ScrollArea::vertical().id_source("preview_table_scroll_area").show(ui, |ui| {
+            self.render_internal(ui, on_next);
+        });
         unsafe {
             IS_RENDERING = false;
         }
