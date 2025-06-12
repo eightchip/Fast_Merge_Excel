@@ -107,6 +107,16 @@ pub struct AppState {
     // 分割保存用
     pub split_file_path: Option<std::path::PathBuf>,
     pub split_file_selector: crate::components::split_file_selector::SplitFileSelector,
+    // プレビューキャッシュ
+    pub split_preview_table: Option<(Vec<String>, Vec<Vec<String>>)>,
+    pub split_preview_total_files: Option<usize>,
+    pub split_preview_last_file: Option<std::path::PathBuf>,
+    pub split_preview_last_keys: Option<Vec<String>>,
+    // 分割保存用 列選択・順序・ソート
+    pub split_columns: Vec<String>, // 現在の列順
+    pub split_columns_selected: Vec<bool>, // 各列の選択状態
+    pub split_columns_sort: Option<(usize, bool)>, // (ソート対象列index, 昇順=true/降順=false)
+    pub split_all_columns: Vec<String>,
 }
 
 impl AppState {
@@ -148,6 +158,14 @@ impl AppState {
             save_error_message: None,
             split_file_path: None,
             split_file_selector: crate::components::split_file_selector::SplitFileSelector::new(),
+            split_preview_table: None,
+            split_preview_total_files: None,
+            split_preview_last_file: None,
+            split_preview_last_keys: None,
+            split_columns: vec![],
+            split_columns_selected: vec![],
+            split_columns_sort: None,
+            split_all_columns: vec![],
         }
     }
 }
