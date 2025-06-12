@@ -357,76 +357,82 @@ fn generate_preview_data_sync(state: &mut AppState) {
     
                     // 3. 結合キー・種別取得
     let is_multi_stage = matches!(state.mode, crate::app::MergeMode::MultiStageJoin);
+    let is_zennen_taihi = matches!(state.mode, crate::app::MergeMode::ZennenTaihi);
     let (keys, join_type) = if is_multi_stage {
         // MultiStageJoin は左結合固定
         (&state.selected_ab_keys, Some(crate::components::join_type_picker::JoinType::Left))
     } else {
         (&state.key_selector.selected_keys, state.join_type_picker.selected_join_type.clone())
     };
-                    let selected_columns = state.column_selector.selected_columns.clone();
+    let selected_columns = state.column_selector.selected_columns.clone();
     
-                    if keys.is_empty() || join_type.is_none() || selected_columns.is_empty() {
-                        state.preview_result = Some((vec![], vec![]));
-                        return;
-                    }
+    if keys.is_empty() || join_type.is_none() || selected_columns.is_empty() {
+        state.preview_result = Some((vec![], vec![]));
+        return;
+    }
     
-                    let join_type = join_type.unwrap();
-                    use crate::components::join_type_picker::to_polars_join_type;
-                    let polars_join_type = to_polars_join_type(&join_type);
+    let join_type = join_type.unwrap();
+    use crate::components::join_type_picker::to_polars_join_type;
+    let polars_join_type = if is_multi_stage {
+        polars::prelude::JoinType::Outer
+    } else if is_zennen_taihi {
+        // 前年対比モードは必ず完全外部結合
+        polars::prelude::JoinType::Outer
+    } else {
+        to_polars_join_type(&join_type)
+    };
 
-                    // 4. join実行（A,B,C対応: MultiStageJoinのみ2段階結合）
-                    let mut df = dfs[0].clone();
-                    if is_multi_stage && dfs.len() >= 3 {
-                        // 2段階左結合: (A left join B) left join C
-                        let ab_keys = &state.selected_ab_keys;
-                        let bc_keys = &state.selected_bc_keys;
-                        let left_keys_ab: Vec<&str> = ab_keys.iter().map(|s| s.as_str()).collect();
-                        let right_keys_ab = left_keys_ab.clone();
-                        let left_keys_bc: Vec<&str> = bc_keys.iter().map(|s| s.as_str()).collect();
-                        let right_keys_bc = left_keys_bc.clone();
-                        // 1. AとBを左結合
-                        if let Ok(ab_joined) = dfs[0].join(
-                            &dfs[1],
-                            left_keys_ab.as_slice(),
-                            right_keys_ab.as_slice(),
-                            polars::prelude::JoinType::Left.into(),
-                        ) {
-                            // 2. ABとCを左結合
-                            if let Ok(abc_joined) = ab_joined.join(
-                                &dfs[2],
-                                left_keys_bc.as_slice(),
-                                right_keys_bc.as_slice(),
-                                polars::prelude::JoinType::Left.into(),
-                            ) {
-                                df = abc_joined;
-                            } else {
-                                state.preview_result = Some((vec![], vec![]));
-                                return;
-                            }
-                        } else {
-                            state.preview_result = Some((vec![], vec![]));
-                            return;
-                        }
-                    } else if dfs.len() >= 2 {
-                        let right = &dfs[1];
-                        let left_keys: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
-                        let right_keys = left_keys.clone();
-                        if let Ok(joined) = df.join(
-                            right,
-                            left_keys.as_slice(),
-                            right_keys.as_slice(),
-                            polars_join_type.into(),
-                        ) {
-                            df = joined;
-                        } else {
-                            state.preview_result = Some((vec![], vec![]));
-                            return;
-                        }
-                    }
+    // 4. join実行（A,B,C対応: MultiStageJoinのみ2段階結合）
+    let mut df = dfs[0].clone();
+    if is_multi_stage && dfs.len() >= 3 {
+        // 2段階左結合: (A left join B) left join C
+        let ab_keys = &state.selected_ab_keys;
+        let bc_keys = &state.selected_bc_keys;
+        let left_keys_ab: Vec<&str> = ab_keys.iter().map(|s| s.as_str()).collect();
+        let right_keys_ab = left_keys_ab.clone();
+        let left_keys_bc: Vec<&str> = bc_keys.iter().map(|s| s.as_str()).collect();
+        let right_keys_bc = left_keys_bc.clone();
+        // 1. AとBを左結合
+        if let Ok(ab_joined) = dfs[0].join(
+            &dfs[1],
+            left_keys_ab.as_slice(),
+            right_keys_ab.as_slice(),
+            polars::prelude::JoinType::Left.into(),
+        ) {
+            // 2. ABとCを左結合
+            if let Ok(abc_joined) = ab_joined.join(
+                &dfs[2],
+                left_keys_bc.as_slice(),
+                right_keys_bc.as_slice(),
+                polars::prelude::JoinType::Left.into(),
+            ) {
+                df = abc_joined;
+            } else {
+                state.preview_result = Some((vec![], vec![]));
+                return;
+            }
+        } else {
+            state.preview_result = Some((vec![], vec![]));
+            return;
+        }
+    } else if dfs.len() >= 2 {
+        let right = &dfs[1];
+        let left_keys: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
+        let right_keys = left_keys.clone();
+        if let Ok(joined) = df.join(
+            right,
+            left_keys.as_slice(),
+            right_keys.as_slice(),
+            polars_join_type.into(),
+        ) {
+            df = joined;
+        } else {
+            state.preview_result = Some((vec![], vec![]));
+            return;
+        }
+    }
     
     // 5. 前年対比の場合は差額列を追加（列選択前に実行）
-    let is_zennen_taihi = matches!(state.mode, crate::app::MergeMode::ZennenTaihi);
-    
     let df_with_diff = if is_zennen_taihi {
         // 前年対比処理：結合後のDataFrameから直接差額計算
         add_difference_columns_from_joined_df(df.clone())
@@ -518,7 +524,7 @@ fn generate_preview_data_sync(state: &mut AppState) {
         }
     }
     
-    // 7. プレビュー用データ変換（最大100行まで）
+    // 7. プレビュー用データ変換
     let column_names: Vec<String> = final_df.get_column_names().iter().map(|s| s.to_string()).collect();
     let all_preview_rows: Vec<Vec<String>> = (0..final_df.height()).map(|i| {
         final_df.get_row(i).unwrap().0.iter().enumerate().map(|(col_idx, v)| {
@@ -530,12 +536,20 @@ fn generate_preview_data_sync(state: &mut AppState) {
             let col_name = if col_idx < final_df.get_column_names().len() {
                 final_df.get_column_names()[col_idx]
             } else { "" };
-            if col_name.contains("取引先") || col_name.contains("コード") || col_name.contains("番号") {
-                if cleaned.trim().is_empty() { "".to_string() } else { cleaned }
-                    } else {
-                let is_truly_null = cleaned == "null" || cleaned == "N/A" || cleaned == "NaN" || cleaned == "None" || cleaned.is_empty();
-                if !is_truly_null { cleaned } else {
-                    if numeric_columns.contains(col_name) { "0".to_string() } else { "".to_string() }
+            let is_truly_null = cleaned == "null" || cleaned == "N/A" || cleaned == "NaN" || cleaned == "None" || cleaned.is_empty();
+            if is_zennen_taihi {
+                if is_numeric_column(&final_df, col_name) || col_name.starts_with("差額_") {
+                    if is_truly_null { "0".to_string() } else { cleaned }
+                } else {
+                    if is_truly_null { "".to_string() } else { cleaned }
+                }
+            } else {
+                if col_name.contains("取引先") || col_name.contains("コード") || col_name.contains("番号") {
+                    if cleaned.trim().is_empty() { "".to_string() } else { cleaned }
+                } else {
+                    if !is_truly_null { cleaned } else {
+                        if numeric_columns.contains(col_name) { "0".to_string() } else { "".to_string() }
+                    }
                 }
             }
         }).collect()

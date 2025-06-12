@@ -27,7 +27,7 @@ pub fn render_column_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                         // Set default join type based on mode if not set
                         match state.mode {
                             crate::app::MergeMode::ZennenTaihi => {
-                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
+                                state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::FullOuter);
                             },
                             crate::app::MergeMode::MultiStageJoin => {
                                 state.join_type_picker.selected_join_type = Some(crate::components::join_type_picker::JoinType::Left);
