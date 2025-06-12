@@ -45,16 +45,13 @@ impl FileSelector {
         ui.add_space(10.0);
         let next_enabled = self.selected_files[0].is_some();
         if next_enabled {
-            if AppButton::new("次へ").show(ui).clicked() {
+            if ui.button("次へ").clicked() {
                 println!("NEXT CLICKED");
                 println!("CALLING ASYNC STEP TRANSITION");
                 on_next();
             }
         } else {
-            AppButton::new("次へ")
-                .with_fill(egui::Color32::from_gray(180))
-                .with_text_color(egui::Color32::from_gray(80))
-                .show(ui);
+            ui.add_enabled(false, egui::Button::new("次へ"));
         }
     }
 }

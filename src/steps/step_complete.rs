@@ -12,18 +12,18 @@ pub fn render_complete(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
         ui.add_space(50.0);
         match save_result {
             Some(true) => {
-                ui.heading("🎉 処理完了！");
+                ui.heading("処理完了！");
                 ui.add_space(20.0);
                 ui.label("Excelファイルの結合・保存が正常に完了しました。");
                 ui.label("📁 保存先フォルダが自動で開かれます。");
                 ui.add_space(30.0);
                 ui.horizontal(|ui| {
-                    if AppButton::new("最初に戻る").show(ui).clicked() {
+                    if ui.button("最初に戻る").clicked() {
                         let mut state = app_state.lock().unwrap();
                         *state = AppState::new();
                     }
                     ui.add_space(20.0);
-                    if AppButton::new("アプリを終了").show(ui).clicked() {
+                    if ui.button("アプリを終了").clicked() {
                         std::process::exit(0);
                     }
                 });
@@ -42,19 +42,19 @@ pub fn render_complete(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                 }
                 ui.add_space(30.0);
                 ui.horizontal(|ui| {
-                    if AppButton::new("最初に戻る").show(ui).clicked() {
+                    if ui.button("最初に戻る").clicked() {
                         let mut state = app_state.lock().unwrap();
                         *state = AppState::new();
                     }
                     ui.add_space(20.0);
-                    if AppButton::new("再試行").show(ui).clicked() {
+                    if ui.button("再試行").clicked() {
                         let mut state = app_state.lock().unwrap();
                         state.step = 5; // 保存画面に戻る
                         state.save_result = None;
                         state.save_error_message = None;
                     }
                     ui.add_space(20.0);
-                    if AppButton::new("アプリを終了").show(ui).clicked() {
+                    if ui.button("アプリを終了").clicked() {
                         std::process::exit(0);
                     }
                 });

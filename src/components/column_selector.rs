@@ -57,16 +57,13 @@ impl ColumnSelector {
             }
             ui.add_space(10.0);
             if !self.selected_columns.is_empty() {
-                if AppButton::new("次へ").show(ui).clicked() {
+                if ui.button("次へ").clicked() {
                     on_next();
                 }
             } else {
-                AppButton::new("次へ")
-                    .with_fill(egui::Color32::from_gray(180))
-                    .with_text_color(egui::Color32::from_gray(80))
-                    .show(ui);
+                ui.add_enabled(false, egui::Button::new("次へ"));
             }
-            if AppButton::new("前へ").show(ui).clicked() {
+            if ui.button("前へ").clicked() {
                 on_prev();
             }
             // ソートキーUIはapp.rs側で呼ぶのでここでは省略

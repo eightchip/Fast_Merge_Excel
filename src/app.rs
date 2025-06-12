@@ -117,6 +117,7 @@ pub struct AppState {
     pub split_columns_selected: Vec<bool>, // 各列の選択状態
     pub split_columns_sort: Option<(usize, bool)>, // (ソート対象列index, 昇順=true/降順=false)
     pub split_all_columns: Vec<String>,
+    pub split_folder_opened: bool,
 }
 
 impl AppState {
@@ -166,6 +167,7 @@ impl AppState {
             split_columns_selected: vec![],
             split_columns_sort: None,
             split_all_columns: vec![],
+            split_folder_opened: false,
         }
     }
 }
@@ -202,7 +204,7 @@ impl App {
             let state = self.state.clone();
             let step = state.lock().unwrap().step;
             let mode = state.lock().unwrap().mode.clone();
-            if step == 0 && mode != MergeMode::SplitSave {
+            if step == 0 {
                 mode_selector::render_mode_selector(state.clone(), ui);
             } else {
                 match mode {

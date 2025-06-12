@@ -96,7 +96,7 @@ impl MultiStageKeySelector {
             && !self.selected_keys_stage2.is_empty();
             
         if ready {
-            if AppButton::new("次へ").show(ui).clicked() {
+            if ui.button("次へ").clicked() {
                 on_next();
             }
         } else {

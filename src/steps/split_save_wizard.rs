@@ -11,16 +11,19 @@ use crate::components::file_selector::get_columns_from_xlsx;
 use umya_spreadsheet::{Spreadsheet, Worksheet, writer::xlsx};
 use std::path::Path;
 use polars::prelude::PolarsError;
+use crate::components::button::AppButton;
+use std::process::Command;
+use std::path::PathBuf;
 
 pub fn render_split_save_wizard(app_state: Arc<Mutex<AppState>>, ui: &mut Ui, ctx: &Context) {
     let mut state = app_state.lock().unwrap();
     
     match state.step {
-        0 => render_file_select(&mut state, ui),
-        1 => render_key_select(&mut state, ui),
-        2 => render_preview(&mut state, ui, ctx),
-        3 => render_save_columns(&mut state, ui),
-        4 => render_save_complete(&mut state, ui),
+        1 => render_file_select(&mut state, ui),
+        2 => render_key_select(&mut state, ui),
+        3 => render_preview(&mut state, ui, ctx),
+        4 => render_save_columns(&mut state, ui),
+        5 => render_save_complete(&mut state, ui),
         _ => {}
     }
 }
@@ -38,27 +41,34 @@ fn render_file_select(state: &mut AppState, ui: &mut Ui) {
         }
     };
     state.split_file_selector.render(ui, &mut on_file_selected);
-    if state.split_file_path.is_some() {
-        let all_columns = get_columns_from_xlsx(state.split_file_path.as_ref().unwrap());
-        state.split_all_columns = all_columns;
-        ui.add_space(20.0);
-        if ui.button("次へ").clicked() {
-            state.step = 1;
+
+    ui.add_space(20.0);
+    ui.horizontal(|ui| {
+        if ui.button("前へ").clicked() {
+            state.step = 0;
         }
-    }
+        let next_enabled = state.split_file_path.is_some();
+        if next_enabled {
+            if ui.button("次へ").clicked() {
+                state.step = 2;
+            }
+        } else {
+            ui.add_enabled(false, egui::Button::new("次へ"));
+        }
+    });
 }
 
 fn render_key_select(state: &mut AppState, ui: &mut Ui) {
     ui.heading("分割の基準となる主キーを選択してください");
     ui.add_space(20.0);
     let mut on_next = || {
-        state.step = 2;
+        state.step = 3;
     };
     state.key_selector.render(ui, &mut on_next);
-    if !state.key_selector.selected_keys.is_empty() {
-        ui.add_space(20.0);
-        if ui.button("次へ").clicked() {
-            state.step = 2;
+    ui.add_space(20.0);
+    if ui.button("前へ").clicked() {
+        if state.step > 0 {
+            state.step -= 1;
         }
     }
 }
@@ -170,14 +180,14 @@ fn render_preview(state: &mut AppState, ui: &mut Ui, _ctx: &Context) {
 fn render_save_columns(state: &mut AppState, ui: &mut Ui) {
     // 初期化: split_columns, split_columns_selected
     if state.split_columns.is_empty() {
-        let all_columns = if !state.split_all_columns.is_empty() {
-            &state.split_all_columns
-        } else if let Some((headers, _)) = &state.split_preview_table {
-            // 件数列は除外
-            &headers.iter().filter(|c| *c != "件数").cloned().collect::<Vec<_>>()
-        } else {
-            &vec![]
-        };
+        // split_all_columnsが空ならファイルから再取得
+        if state.split_all_columns.is_empty() {
+            if let Some(path) = &state.split_file_path {
+                state.split_all_columns = get_columns_from_xlsx(path);
+            }
+        }
+        // 件数列は除外
+        let all_columns: Vec<String> = state.split_all_columns.iter().filter(|c| *c != "件数").cloned().collect();
         state.split_columns = all_columns.clone();
         state.split_columns_selected = all_columns.iter().map(|_| true).collect();
     }
@@ -254,65 +264,79 @@ fn render_save_columns(state: &mut AppState, ui: &mut Ui) {
                 state.step -= 1;
             }
         }
-        if ui.button("次へ").clicked() {
-            // 保存処理
-            if let (Some(path), keys) = (&state.split_file_path, &state.key_selector.selected_keys) {
-                use chrono::Local;
-                use std::fs;
-                use std::path::PathBuf;
-                let now = Local::now().format("%y%m%d%H%M%S").to_string();
-                let out_dir = PathBuf::from(format!("./{}", now));
-                let _ = fs::create_dir_all(&out_dir);
-                // Polarsで元データを読み込み
-                let df = crate::components::file_selector::read_xlsx_to_df(path);
-                // 選択された列だけ抽出
-                let selected_cols: Vec<String> = state.split_columns.iter().enumerate()
-                    .filter(|(i, _)| state.split_columns_selected[*i])
-                    .map(|(_, c)| c.clone()).collect();
-                let df = df.select(&selected_cols).unwrap();
-                // 主キーごとにグループ化
-                let groupby = df.group_by(keys).unwrap();
-                groupby.apply(|sub_df| {
-                    if sub_df.height() == 0 {
-                        return Ok(sub_df.clone());
+        let next_enabled = state.split_columns_selected.iter().any(|&b| b);
+        if next_enabled {
+            if ui.button("次へ").clicked() {
+                // 保存処理
+                if let (Some(path), keys) = (&state.split_file_path, &state.key_selector.selected_keys) {
+                    use chrono::Local;
+                    use std::fs;
+                    use std::path::PathBuf;
+                    let now = Local::now().format("%y%m%d%H%M%S").to_string();
+                    let out_dir = PathBuf::from(format!("./{}", now));
+                    if let Err(e) = std::fs::create_dir_all(&out_dir) {
+                        state.save_error_message = Some(format!("保存先フォルダの作成に失敗しました: {}", e));
+                        return;
                     }
-                    // sub_df: このグループのDataFrame
-                    // 主キー値はsub_dfの最初の行から取得
-                    let key_vals: Vec<String> = keys.iter()
-                        .map(|k| sub_df.column(k).unwrap().get(0).unwrap().to_string())
-                        .collect();
-                    let key_str = key_vals.iter()
-                        .map(|v| sanitize_filename(v))
-                        .collect::<Vec<_>>()
-                        .join("_");
-                    // ファイル名生成・保存処理
-                    let file_path = out_dir.join(format!("{}.xlsx", key_str));
-                    println!("Saving: {:?}", file_path);
-                    let mut book = Spreadsheet::default();
-                    let sheet = book.new_sheet("Sheet1").map_err(|e| PolarsError::ComputeError(format!("{:?}", e).into()))?;
-                    // ヘッダー
-                    for (col_idx, name) in sub_df.get_column_names().iter().enumerate() {
-                        sheet.get_cell_mut(((col_idx + 1) as u32, 1u32)).set_value(name.to_string());
-                    }
-                    // データ
-                    for row_idx in 0..sub_df.height() {
-                        let row = sub_df.get_row(row_idx)?;
-                        for (col_idx, val) in row.0.iter().enumerate() {
-                            let mut s = val.to_string();
-                            if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
-                                s = s[1..s.len()-1].to_string();
-                            }
-                            sheet.get_cell_mut(((col_idx + 1) as u32, (row_idx + 2) as u32)).set_value(s);
+                    let abs_dir = out_dir.canonicalize().unwrap_or(out_dir.clone());
+                    let dir_str = abs_dir.to_string_lossy().to_string();
+                    let _ = std::process::Command::new("explorer").arg(&dir_str).spawn();
+                    state.split_folder_opened = true;
+                    // Polarsで元データを読み込み
+                    let df = crate::components::file_selector::read_xlsx_to_df(path);
+                    // 選択された列だけ抽出
+                    let selected_cols: Vec<String> = state.split_columns.iter().enumerate()
+                        .filter(|(i, _)| state.split_columns_selected[*i])
+                        .map(|(_, c)| c.clone()).collect();
+                    let df = df.select(&selected_cols).unwrap();
+                    // 主キーごとにグループ化
+                    let groupby = df.group_by(keys).unwrap();
+                    groupby.apply(|sub_df| {
+                        if sub_df.height() == 0 {
+                            return Ok(sub_df.clone());
                         }
-                    }
-                    if let Err(e) = xlsx::write(&book, &file_path) {
-                        state.save_error_message = Some(format!("保存失敗: {}", e));
-                        return Err(PolarsError::ComputeError(format!("保存失敗: {}", e).into()));
-                    }
-                    Ok(sub_df.clone())
-                }).unwrap();
+                        // sub_df: このグループのDataFrame
+                        // 主キー値はsub_dfの最初の行から取得
+                        let key_vals: Vec<String> = keys.iter()
+                            .map(|k| sub_df.column(k).unwrap().get(0).unwrap().to_string())
+                            .collect();
+                        let key_str = key_vals
+                            .into_iter()
+                            .filter(|s| !s.is_empty())
+                            .map(|v| sanitize_filename(&v))
+                            .collect::<Vec<_>>()
+                            .join("_");
+                        // ファイル名生成・保存処理
+                        let file_path = out_dir.join(format!("{}.xlsx", key_str));
+                        println!("Saving: {:?}", file_path);
+                        let mut book = Spreadsheet::default();
+                        let sheet = book.new_sheet("Sheet1").map_err(|e| PolarsError::ComputeError(format!("{:?}", e).into()))?;
+                        // ヘッダー
+                        for (col_idx, name) in sub_df.get_column_names().iter().enumerate() {
+                            sheet.get_cell_mut(((col_idx + 1) as u32, 1u32)).set_value(name.to_string());
+                        }
+                        // データ
+                        for row_idx in 0..sub_df.height() {
+                            let row = sub_df.get_row(row_idx)?;
+                            for (col_idx, val) in row.0.iter().enumerate() {
+                                let mut s = val.to_string();
+                                if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
+                                    s = s[1..s.len()-1].to_string();
+                                }
+                                sheet.get_cell_mut(((col_idx + 1) as u32, (row_idx + 2) as u32)).set_value(s);
+                            }
+                        }
+                        if let Err(e) = xlsx::write(&book, &file_path) {
+                            state.save_error_message = Some(format!("保存失敗: {}", e));
+                            return Err(PolarsError::ComputeError(format!("保存失敗: {}", e).into()));
+                        }
+                        Ok(sub_df.clone())
+                    }).unwrap();
+                }
+                state.step += 1;
             }
-            state.step += 1;
+        } else {
+            ui.add_enabled(false, egui::Button::new("次へ"));
         }
     });
 }
@@ -322,7 +346,18 @@ fn render_save_complete(state: &mut AppState, ui: &mut Ui) {
         ui.colored_label(egui::Color32::RED, format!("保存エラー: {}", msg));
     } else {
         ui.heading("分割保存が完了しました！");
-        ui.label("出力フォルダを開くなどの案内をここに表示できます。");
+        ui.label("出力フォルダが自動で開きます");
+        if !state.split_folder_opened {
+            if let Some(path) = &state.split_file_path {
+                use chrono::Local;
+                let now = Local::now().format("%y%m%d%H%M%S").to_string();
+                let out_dir = PathBuf::from(format!("./{}", now));
+                let abs_dir = out_dir.canonicalize().unwrap_or(out_dir.clone());
+                let dir_str = abs_dir.to_string_lossy().to_string();
+                let _ = std::process::Command::new("explorer").arg(&dir_str).spawn();
+                state.split_folder_opened = true;
+            }
+        }
     }
     if ui.button("最初に戻る").clicked() {
         *state = AppState::new();
@@ -330,11 +365,18 @@ fn render_save_complete(state: &mut AppState, ui: &mut Ui) {
 }
 
 fn sanitize_filename(s: &str) -> String {
-    // Windowsで使えない文字を全て_に置換
-    let forbidden = ['<', '>', ':', '\"', '/', '\\', '|', '?', '*'];
-    s.chars()
+    // Windowsで使えない文字を全て_に置換し、連続アンダースコアや先頭・末尾の_も除去
+    let forbidden = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+    let mut sanitized: String = s.chars()
         .map(|c| if forbidden.contains(&c) { '_' } else { c })
-        .collect()
+        .collect();
+    // 連続アンダースコアを1つにまとめる
+    while sanitized.contains("__") {
+        sanitized = sanitized.replace("__", "_");
+    }
+    // 先頭・末尾のアンダースコアを除去
+    sanitized = sanitized.trim_matches('_').to_string();
+    sanitized
 }
 
 fn save_df_to_excel(sub_df: &DataFrame, file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {

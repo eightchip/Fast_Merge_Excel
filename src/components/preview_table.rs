@@ -490,28 +490,20 @@ impl PreviewTable {
         ui.horizontal(|ui| {
             // 最初のページへボタン
             if self.page > 0 {
-                if AppButton::new("≪ 最初").show(ui).clicked() {
+                if ui.button("≪ 最初").clicked() {
                     self.page = 0;
                 }
             } else {
-                AppButton::new("≪ 最初")
-                    .with_fill(egui::Color32::from_gray(180))
-                    .with_text_color(egui::Color32::from_gray(80))
-                    .show(ui);
+                ui.add_enabled(false, egui::Button::new("≪ 最初"));
             }
-            
             // 前のページへボタン
             if self.page > 0 {
-                if AppButton::new("◀ 前へ").show(ui).clicked() {
+                if ui.button("◀ 前へ").clicked() {
                     self.page -= 1;
                 }
             } else {
-                AppButton::new("◀ 前へ")
-                    .with_fill(egui::Color32::from_gray(180))
-                    .with_text_color(egui::Color32::from_gray(80))
-                    .show(ui);
+                ui.add_enabled(false, egui::Button::new("◀ 前へ"));
             }
-            
             // ページ情報を中央に表示
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 ui.label(format!("{}/{}ページ ({}-{} / {}行)", 
@@ -522,33 +514,25 @@ impl PreviewTable {
                     total
                 ));
             });
-            
             // 次のページへボタン
             if self.page + 1 < total_pages {
-                if AppButton::new("次へ ▶").show(ui).clicked() {
+                if ui.button("次へ ▶").clicked() {
                     self.page += 1;
                 }
             } else {
-                AppButton::new("次へ ▶")
-                    .with_fill(egui::Color32::from_gray(180))
-                    .with_text_color(egui::Color32::from_gray(80))
-                    .show(ui);
+                ui.add_enabled(false, egui::Button::new("次へ ▶"));
             }
-            
             // 最後のページへボタン
             if self.page + 1 < total_pages {
-                if AppButton::new("最後 ≫").show(ui).clicked() {
+                if ui.button("最後 ≫").clicked() {
                     self.page = total_pages - 1;
                 }
             } else {
-                AppButton::new("最後 ≫")
-                    .with_fill(egui::Color32::from_gray(180))
-                    .with_text_color(egui::Color32::from_gray(80))
-                    .show(ui);
+                ui.add_enabled(false, egui::Button::new("最後 ≫"));
             }
         });
         ui.add_space(10.0);
-        if AppButton::new("次へ").show(ui).clicked() {
+        if ui.button("次へ").clicked() {
             on_next();
         }
     }

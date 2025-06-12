@@ -1,6 +1,7 @@
 use egui::Ui;
 use rfd::FileDialog;
 use std::path::PathBuf;
+use crate::components::button::AppButton;
 
 pub struct SplitFileSelector {
     pub selected_file: Option<PathBuf>,
@@ -13,7 +14,7 @@ impl SplitFileSelector {
 
     pub fn render(&mut self, ui: &mut Ui, on_file_selected: &mut dyn FnMut(Option<PathBuf>)) {
         ui.horizontal(|ui| {
-            if ui.button("ファイルを選択").clicked() {
+            if AppButton::new("ファイルを選択").show(ui).clicked() {
                 if let Some(path) = FileDialog::new().add_filter("Excel", &["xlsx"]).pick_file() {
                     self.selected_file = Some(path.clone());
                     on_file_selected(Some(path));
