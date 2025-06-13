@@ -10,3 +10,18 @@ Location: src\steps\split_save_wizard.rs:81:22
 Location: src\steps\split_save_wizard.rs:306:20
 🚨 PANIC OCCURRED at: SystemTime { intervals: 133942089104241562 }
 Location: src\steps\split_save_wizard.rs:330:24
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942927999877935 }
+Location: src\utils\excel.rs:42:58
+Message: called `Option::unwrap()` on a `None` value
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942931578102940 }
+Location: src\utils\excel.rs:60:36
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942943334008574 }
+Location: src\steps\split_save_wizard.rs:98:22
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942952178799379 }
+Location: C:\Users\eight\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\umya-spreadsheet-1.2.7\src\helper\coordinate.rs:55:5
+Message: Column number starts from 1.
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942953923187706 }
+Location: src\utils\excel.rs:18:30
+🚨 PANIC OCCURRED at: SystemTime { intervals: 133942955783200827 }
+Location: C:\Users\eight\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\umya-spreadsheet-1.2.7\src\helper\coordinate.rs:55:5
+Message: Column number starts from 1.
