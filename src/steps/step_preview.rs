@@ -1,13 +1,13 @@
 use egui::Ui;
 use crate::app::AppState;
 use std::sync::{Arc, Mutex};
-use crate::steps::async_step::async_step_transition;
+// use crate::steps::async_step::async_step_transition;
 use polars::prelude::DataFrame;
 use polars::prelude::DataFrameJoinOps;
 use polars::prelude::*;
 use polars::prelude::Series;
-use crate::components::preview_table::PreviewTable;
-use std::time::{SystemTime, UNIX_EPOCH};
+// use crate::components::preview_table::PreviewTable;
+// use std::time::{SystemTime, UNIX_EPOCH};
 
 // データサンプリングによる数値列判定関数
 fn is_numeric_column(df: &DataFrame, col_name: &str) -> bool {

@@ -1,18 +1,18 @@
 use egui::{Context, Ui};
 use crate::app::AppState;
 use std::sync::{Arc, Mutex};
-use crate::components::split_file_selector::SplitFileSelector;
-use crate::components::key_selector::KeySelector;
-use crate::components::preview_table::PreviewTable;
-use crate::components::save_panel::SavePanel;
+// use crate::components::split_file_selector::SplitFileSelector;
+// use crate::components::key_selector::KeySelector;
+// use crate::components::preview_table::PreviewTable;
+// use crate::components::save_panel::SavePanel;
 use polars::prelude::*;
-use calamine::{open_workbook_auto, Reader};
-use crate::components::file_selector::get_columns_from_xlsx;
-use umya_spreadsheet::{Spreadsheet, Worksheet, writer::xlsx};
+use calamine::Reader;
+// use crate::components::file_selector::get_columns_from_xlsx;
+use umya_spreadsheet::{Spreadsheet, writer::xlsx};
 use std::path::Path;
-use polars::prelude::PolarsError;
-use crate::components::button::AppButton;
-use std::process::Command;
+// use polars::prelude::PolarsError;
+// use crate::components::button::AppButton;
+// use std::process::Command;
 use std::path::PathBuf;
 use magic_merge_excel_2::utils::excel;
 

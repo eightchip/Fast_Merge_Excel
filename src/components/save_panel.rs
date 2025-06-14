@@ -1,13 +1,13 @@
 // src/components/save_panel.rs
 
-use std::path::{Path, PathBuf};
-use rfd::FileDialog;
+use std::path::Path;
+// use rfd::FileDialog;
 use egui::Ui;
-use umya_spreadsheet::{Spreadsheet, writer::xlsx, new_file};
+use umya_spreadsheet::{writer::xlsx, new_file};
 use umya_spreadsheet::writer::xlsx::XlsxError;
-use crate::components::button::AppButton;
-use std::io::{Error as IoError, ErrorKind};
-use std::fs;
+// use crate::components::button::AppButton;
+use std::io::ErrorKind;
+// use std::fs;
 use magic_merge_excel_2::utils::excel_style;
 
 #[derive(Clone, Debug)]

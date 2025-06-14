@@ -37,7 +37,7 @@ impl PreviewAsyncPanel {
                     ui.colored_label(egui::Color32::RED, err);
                 }
             }
-            if let Ok(mut result) = self.result_shared.lock() {
+            if let Ok(result) = self.result_shared.lock() {
                 if result.is_some() {
                     self.is_processing = false;
                     on_finish();

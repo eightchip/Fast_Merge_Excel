@@ -1,15 +1,15 @@
 use std::path::Path;
 use umya_spreadsheet::*;
-use polars::prelude::*;
+// use polars::prelude::*;
 use std::collections::HashMap;
 use std::fs;
-use std::io::Write;
-use crate::utils::excel;
+// use std::io::Write;
+// use crate::utils::excel;
 use calamine::{open_workbook_auto, Reader};
 
 // シート名をサニタイズする関数
 fn sanitize_sheet_name(name: &str) -> String {
-    let mut sanitized = name
+    let sanitized = name
         .replace([':', '\\', '/', '?', '*', '[', ']'], "_")
         .replace('"', "");
     // シート名の最大長は31「文字」

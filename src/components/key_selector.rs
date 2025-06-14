@@ -1,5 +1,5 @@
 use egui::Ui;
-use crate::components::button::AppButton;
+// use crate::components::button::AppButton;
 
 #[derive(Clone, Debug)]
 pub struct KeySelector {
@@ -16,7 +16,7 @@ impl KeySelector {
     }
 
     pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut()) {
-        ui.label("結合キーを選択してください（複数可）");
+        ui.label("キーを選択してください（複数可）");
         let mut changed = false;
         egui::ScrollArea::vertical()
             .id_source("key_selector_keys")

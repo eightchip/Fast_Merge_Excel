@@ -1,5 +1,5 @@
 use egui::Ui;
-use crate::components::button::AppButton;
+// use crate::components::button::AppButton;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum JoinType {
@@ -31,7 +31,7 @@ impl JoinTypePicker {
             (JoinType::Concat, "縦結合 (Concat)"),
         ];
         for (ty, label) in &join_types {
-            let mut checked = self.selected_join_type.as_ref() == Some(ty);
+            let checked = self.selected_join_type.as_ref() == Some(ty);
             if ui.radio(checked, *label).clicked() {
                 self.selected_join_type = Some(ty.clone());
                 println!("[DEBUG] Join type selected: {:?}", ty);

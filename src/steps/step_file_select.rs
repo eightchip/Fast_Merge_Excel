@@ -3,7 +3,7 @@ use crate::app::AppState;
 use std::sync::{Arc, Mutex};
 use crate::steps::async_step::async_step_transition;
 use crate::components::file_selector::get_columns_from_xlsx;
-use crate::components::file_selector::FileSelector;
+// use crate::components::file_selector::FileSelector;
 
 pub fn render_file_select(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
     let next_step = {

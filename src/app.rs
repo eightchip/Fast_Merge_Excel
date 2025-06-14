@@ -1,33 +1,33 @@
-use egui::{Context, Ui};
+// use egui::{Context, Ui};
 use crate::components::file_selector::FileSelector;
 use crate::components::key_selector::KeySelector;
-use crate::components::join_type_picker::{JoinTypePicker, JoinType};
+use crate::components::join_type_picker::JoinTypePicker;
 use crate::components::column_selector::ColumnSelector;
 use crate::components::preview_table::PreviewTable;
-use crate::components::save_panel::{SavePanel, save_to_xlsx};
-use calamine::{open_workbook_auto, DataType};
+use crate::components::save_panel::SavePanel;
+// use calamine::{open_workbook_auto, DataType};
 use calamine::Reader;
 use polars::prelude::*;
-use crate::components::join_type_picker::to_polars_join_type;
-use std::collections::HashSet;
-use crate::components::sort_settings::{SortSettings, SortOrder, SortKey};
-use umya_spreadsheet::Spreadsheet;
-use umya_spreadsheet::writer::xlsx;
-use std::cell::RefCell;
-use std::process::Command;
-use crate::components::cleaner::clean_and_infer_columns;
+// use crate::components::join_type_picker::to_polars_join_type;
+// use std::collections::HashSet;
+use crate::components::sort_settings::{SortSettings, SortKey};
+// use umya_spreadsheet::Spreadsheet;
+// use umya_spreadsheet::writer::xlsx;
+// use std::cell::RefCell;
+// use std::process::Command;
+// use crate::components::cleaner::clean_and_infer_columns;
 use crate::components::compare_file_selector::CompareFileSelector;
 use crate::components::compare_key_selector::CompareKeySelector;
-use std::borrow::Cow;
+// use std::borrow::Cow;
 use crate::components::multi_stage_file_selector::MultiStageFileSelector;
 use crate::components::multi_stage_key_selector::MultiStageKeySelector;
 use std::sync::{Arc, Mutex};
-use crate::components::preview_spinner::PreviewAsyncPanel;
+// use crate::components::preview_spinner::PreviewAsyncPanel;
 use crate::components::preview_async::PreviewAsyncComponent;
-use crate::components::button::AppButton;
-use polars::prelude::{JoinArgs, JoinType as PolarsJoinType};
+// use crate::components::button::AppButton;
+// use polars::prelude::{JoinArgs, JoinType as PolarsJoinType};
 
-use crate::steps::{step_file_select, step_key_select, step_column_select, step_preview, mode_selector, zennen_taihi_wizard, multi_stage_wizard, kanzen_icchi_wizard, hikaku_wizard, concat_wizard, split_save_wizard};
+use crate::steps::{mode_selector, zennen_taihi_wizard, multi_stage_wizard, split_save_wizard};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum MergeMode {

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use rfd::FileDialog;
 use egui::Ui;
 use calamine::{open_workbook_auto, Reader};
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::path::Path;
 use polars::prelude::*;
 use crate::components::cleaner::clean_and_infer_columns;
@@ -125,7 +125,7 @@ fn render_file_select(state: &mut AppState, ui: &mut Ui) {
 }
 
 pub fn render_split_save_wizard(app_state: Arc<Mutex<AppState>>, ui: &mut Ui, ctx: &Context) {
-    let mut state = app_state.lock().unwrap();
+    let state = app_state.lock().unwrap();
     println!("[DEBUG] split_save_wizard step: {}", state.step);
     // ...
 }

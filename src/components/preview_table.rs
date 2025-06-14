@@ -1,7 +1,7 @@
-use egui::{Ui, Color32, RichText};
-use crate::components::button::AppButton;
-use std::sync::{Arc, Mutex};
-use crate::app::AppState;
+use egui::Ui;
+// use crate::components::button::AppButton;
+// use std::sync::{Arc, Mutex};
+// use crate::app::AppState;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -320,128 +320,104 @@ impl PreviewTable {
         let rows_per_page = 20;
         
         // 列順序変更UI
-        ui.horizontal(|ui| {
-            ui.label("列順序調整:");
-        });
-        
-        // 各列に対する移動ボタン
-        if self.columns.len() > 1 {
-            let mut column_move_actions = Vec::new();
-            
+        egui::ScrollArea::horizontal().id_source("column_order_scroll").show(ui, |ui| {
             ui.horizontal(|ui| {
-                for (i, col_name) in self.columns.iter().enumerate() {
-                    ui.group(|ui| {
-                        ui.vertical(|ui| {
-                            ui.label(format!("{}:", col_name));
-                            ui.horizontal(|ui| {
-                                // 左移動ボタン
-                                if i > 0 {
-                                    if ui.button("◀").clicked() {
-                                        column_move_actions.push(("left", i));
-                                    }
-                                } else {
-                                    ui.add_enabled(false, egui::Button::new("◀"));
-                                }
-                                
-                                // 右移動ボタン
-                                if i < self.columns.len() - 1 {
-                                    if ui.button("▶").clicked() {
-                                        column_move_actions.push(("right", i));
-                                    }
-                                } else {
-                                    ui.add_enabled(false, egui::Button::new("▶"));
-                                }
-                            });
-                        });
-                    });
-                }
+                ui.label("列順序調整:");
             });
-            
-            // 収集した移動操作を実行
-            for (direction, index) in column_move_actions {
-                match direction {
-                    "left" => self.move_column_left(index),
-                    "right" => self.move_column_right(index),
-                    _ => {}
+            if self.columns.len() > 1 {
+                let mut column_move_actions = Vec::new();
+                ui.horizontal(|ui| {
+                    for (i, col_name) in self.columns.iter().enumerate() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("{}:", col_name));
+                            // 左移動ボタン
+                            if i > 0 {
+                                if ui.button("◀").clicked() {
+                                    column_move_actions.push(("left", i));
+                                }
+                            } else {
+                                ui.add_enabled(false, egui::Button::new("◀"));
+                            }
+                            // 右移動ボタン
+                            if i < self.columns.len() - 1 {
+                                if ui.button("▶").clicked() {
+                                    column_move_actions.push(("right", i));
+                                }
+                            } else {
+                                ui.add_enabled(false, egui::Button::new("▶"));
+                            }
+                        });
+                    }
+                });
+                for (direction, index) in column_move_actions {
+                    match direction {
+                        "left" => self.move_column_left(index),
+                        "right" => self.move_column_right(index),
+                        _ => {}
+                    }
                 }
+                ui.separator();
             }
-            
-            ui.separator();
-        }
+        });
         
         // ソート設定UI
         if !self.columns.is_empty() {
-            ui.horizontal(|ui| {
-                ui.label("ソート設定:");
-            });
-            
-            let mut sort_change_actions = Vec::new();
-            
-            ui.horizontal(|ui| {
-                for (i, col_name) in self.columns.iter().enumerate() {
-                    ui.group(|ui| {
-                        ui.vertical(|ui| {
+            egui::ScrollArea::horizontal().id_source("sort_settings_scroll").show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("ソート設定:");
+                });
+                let mut sort_change_actions = Vec::new();
+                ui.horizontal(|ui| {
+                    for (i, col_name) in self.columns.iter().enumerate() {
+                        ui.horizontal(|ui| {
                             ui.label(format!("{}:", col_name));
-                            
-                            // 現在のソート状態を取得
                             let current_sort = if i < self.column_sorts.len() {
                                 &self.column_sorts[i]
                             } else {
                                 &ColumnSort { direction: SortDirection::None, priority: None }
                             };
-                            
-                            // 優先度表示
                             if let Some(priority) = current_sort.priority {
                                 ui.label(format!("優先度: {}", priority));
                             } else {
                                 ui.label("ソートなし");
                             }
-                            
                             // ソートボタン
-                            ui.horizontal(|ui| {
-                                // 昇順ボタン
-                                let ascending_active = matches!(current_sort.direction, SortDirection::Ascending);
-                                let ascending_button = if ascending_active {
-                                    egui::Button::new("↑").fill(egui::Color32::from_rgb(100, 150, 255))
+                            let ascending_active = matches!(current_sort.direction, SortDirection::Ascending);
+                            let ascending_button = if ascending_active {
+                                egui::Button::new("↑").fill(egui::Color32::from_rgb(100, 150, 255))
+                            } else {
+                                egui::Button::new("↑")
+                            };
+                            if ui.add(ascending_button).clicked() {
+                                let new_direction = if ascending_active {
+                                    SortDirection::None
                                 } else {
-                                    egui::Button::new("↑")
+                                    SortDirection::Ascending
                                 };
-                                if ui.add(ascending_button).clicked() {
-                                    let new_direction = if ascending_active {
-                                        SortDirection::None
-                                    } else {
-                                        SortDirection::Ascending
-                                    };
-                                    sort_change_actions.push((i, new_direction));
-                                }
-                                
-                                // 降順ボタン
-                                let descending_active = matches!(current_sort.direction, SortDirection::Descending);
-                                let descending_button = if descending_active {
-                                    egui::Button::new("↓").fill(egui::Color32::from_rgb(255, 150, 100))
+                                sort_change_actions.push((i, new_direction));
+                            }
+                            let descending_active = matches!(current_sort.direction, SortDirection::Descending);
+                            let descending_button = if descending_active {
+                                egui::Button::new("↓").fill(egui::Color32::from_rgb(255, 150, 100))
+                            } else {
+                                egui::Button::new("↓")
+                            };
+                            if ui.add(descending_button).clicked() {
+                                let new_direction = if descending_active {
+                                    SortDirection::None
                                 } else {
-                                    egui::Button::new("↓")
+                                    SortDirection::Descending
                                 };
-                                if ui.add(descending_button).clicked() {
-                                    let new_direction = if descending_active {
-                                        SortDirection::None
-                                    } else {
-                                        SortDirection::Descending
-                                    };
-                                    sort_change_actions.push((i, new_direction));
-                                }
-                            });
+                                sort_change_actions.push((i, new_direction));
+                            }
                         });
-                    });
+                    }
+                });
+                for (col_index, direction) in sort_change_actions {
+                    self.set_column_sort(col_index, direction);
                 }
+                ui.separator();
             });
-            
-            // 収集したソート変更操作を実行
-            for (col_index, direction) in sort_change_actions {
-                self.set_column_sort(col_index, direction);
-            }
-            
-            ui.separator();
         }
         
         let total = self.preview_data.len();
