@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use crate::steps::async_step::async_step_transition;
 use crate::components::save_panel::{save_to_xlsx, SaveError};
 use crate::components::button::AppButton;
+use std::path::Path;
 
 pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
     // デバッグログを削除
@@ -19,8 +20,8 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
     // デバッグログを削除
     save_panel.render(
         ui,
-        &mut move |file_name| {
-            let file_name = file_name.to_string();
+        &mut move |file_name: &Path| -> Result<(), SaveError> {
+            let file_name = file_name.to_string_lossy().to_string();
             // 保存を開始する前に結果をリセット
             {
                 let mut state = app_state_clone.lock().unwrap();
@@ -28,6 +29,7 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                 state.save_error_message = None;
             }
             
+            // 非同期処理を開始
             async_step_transition(app_state_clone.clone(), next_step, move || {
                 move |state: &mut AppState| {
                     println!("[SAVE] Starting save process for file: {}", file_name);
@@ -56,57 +58,59 @@ pub fn render_save_panel(app_state: Arc<Mutex<AppState>>, ui: &mut Ui) {
                     // 実際のファイル保存
                     println!("[SAVE] Attempting to save to: {}", file_name);
                     match save_to_xlsx(&file_name, &save_columns, &save_data) {
-                            Ok(()) => {
-                                println!("✅ [SAVE] File saved successfully: {}", file_name);
-                                println!("[SAVE] Save operation completed without errors");
-                                
-                                // 保存成功をAppStateに記録
-                                state.save_result = Some(true);
-                                state.save_error_message = None;
-                                state.save_panel.clear_error(); // エラーをクリア
-                                
-                                // 保存先フォルダを開く（絶対パスで処理）
-                                let file_path = std::path::Path::new(&file_name);
-                                let dir_to_open = if file_path.is_absolute() {
-                                    // 絶対パスの場合は親ディレクトリを取得
-                                    if let Some(parent_dir) = file_path.parent() {
-                                        parent_dir.to_path_buf()
-                                    } else {
-                                        std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
-                                    }
+                        Ok(()) => {
+                            println!("✅ [SAVE] File saved successfully: {}", file_name);
+                            println!("[SAVE] Save operation completed without errors");
+                            
+                            // 保存成功をAppStateに記録
+                            state.save_result = Some(true);
+                            state.save_error_message = None;
+                            state.save_panel.clear_error(); // エラーをクリア
+                            
+                            // 保存先フォルダを開く（絶対パスで処理）
+                            let file_path = std::path::Path::new(&file_name);
+                            let dir_to_open = if file_path.is_absolute() {
+                                // 絶対パスの場合は親ディレクトリを取得
+                                if let Some(parent_dir) = file_path.parent() {
+                                    parent_dir.to_path_buf()
                                 } else {
-                                    // 相対パスの場合は現在のディレクトリの絶対パスを取得
-                                    let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-                                    if let Some(parent_dir) = file_path.parent() {
-                                        current_dir.join(parent_dir)
-                                    } else {
-                                        current_dir
-                                    }
-                                };
-                                
-                                // Windows用のexplorerコマンドで絶対パスを指定
-                                let dir_str = dir_to_open.to_string_lossy().to_string();
-                                println!("[SAVE] Opening folder: {}", dir_str);
-                                let _ = std::process::Command::new("explorer")
-                                    .arg(&dir_str)
-                                    .spawn()
-                                    .map_err(|e| println!("[SAVE] Failed to open folder: {:?}", e));
-                            }
-                            Err(save_error) => {
-                                println!("❌ [SAVE] Save error occurred: {:?}", save_error);
-                                println!("[SAVE] Error details: {}", save_error.user_friendly_message());
-                                
-                                // SavePanelにエラー情報を設定（UIで表示される）
-                                state.save_panel.set_error(save_error.clone());
-                                
-                                // レガシーサポートのためAppStateにも設定
-                                state.save_result = Some(false);
-                                state.save_error_message = Some(save_error.user_friendly_message());
-                            }
+                                    std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+                                }
+                            } else {
+                                // 相対パスの場合は現在のディレクトリの絶対パスを取得
+                                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                                if let Some(parent_dir) = file_path.parent() {
+                                    current_dir.join(parent_dir)
+                                } else {
+                                    current_dir
+                                }
+                            };
+                            
+                            // Windows用のexplorerコマンドで絶対パスを指定
+                            let dir_str = dir_to_open.to_string_lossy().to_string();
+                            println!("[SAVE] Opening folder: {}", dir_str);
+                            let _ = std::process::Command::new("explorer")
+                                .arg(&dir_str)
+                                .spawn()
+                                .map_err(|e| println!("[SAVE] Failed to open folder: {:?}", e));
                         }
-                    
+                        Err(save_error) => {
+                            println!("❌ [SAVE] Save error occurred: {:?}", save_error);
+                            println!("[SAVE] Error details: {}", save_error.user_friendly_message());
+                            
+                            // SavePanelにエラー情報を設定（UIで表示される）
+                            state.save_panel.set_error(save_error.clone());
+                            
+                            // レガシーサポートのためAppStateにも設定
+                            state.save_result = Some(false);
+                            state.save_error_message = Some(save_error.user_friendly_message());
+                        }
+                    }
                 }
             });
+            
+            // 保存処理の結果を返す（非同期処理の結果はAppStateに保存される）
+            Ok(())
         },
     );
     // 「前へ」ボタンを追加

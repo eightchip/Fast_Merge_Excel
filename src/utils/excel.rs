@@ -131,10 +131,19 @@ pub fn split_excel_by_key(
                 }
             }
 
+            // スタイル適用
+            crate::utils::excel_style::apply_common_style(new_sheet, 1, headers.len() as u32, chunk.len() as u32);
+
             // ファイル名を生成（サニタイズ済みのキーを使用）
             let sanitized_key = sanitize_sheet_name(&key);
-            let file_name = format!("{}_{}.xlsx", sanitized_key, i + 1);
-            let output_path = output_dir.join(file_name);
+            let mut file_name = format!("{}.xlsx", sanitized_key);
+            let mut output_path = output_dir.join(&file_name);
+            let mut counter = 2;
+            while output_path.exists() {
+                file_name = format!("{}_{}.xlsx", sanitized_key, counter);
+                output_path = output_dir.join(&file_name);
+                counter += 1;
+            }
 
             // ファイルに書き込み
             umya_spreadsheet::writer::xlsx::write(&new_workbook, &output_path)?;

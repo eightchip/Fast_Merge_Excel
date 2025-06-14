@@ -26,7 +26,7 @@ impl FileSelector {
     }
 
     pub fn render(&mut self, ui: &mut Ui, on_next: &mut dyn FnMut(), on_columns_loaded: &mut dyn FnMut([Vec<String>; 3])) {
-        let labels = ["ファイルA（必須）", "ファイルB（必須）", "ファイルC（任意）"];
+        let labels = ["ファイルA（必須）", "ファイルB（必須）", "ファイルC（2段階結合時のみ選択）"];
         for i in 0..3 {
             ui.horizontal(|ui| {
                 if AppButton::new(labels[i]).show(ui).clicked() {
@@ -36,6 +36,11 @@ impl FileSelector {
                 }
                 if let Some(path) = &self.selected_files[i] {
                     ui.label(path.file_name().unwrap_or_default().to_string_lossy());
+                    if i == 2 {
+                        if ui.button("キャンセル").clicked() {
+                            self.selected_files[i] = None;
+                        }
+                    }
                 } else {
                     ui.label("未選択");
                 }
